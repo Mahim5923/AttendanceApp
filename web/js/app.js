@@ -1,5 +1,5 @@
 // AttendPro - Modern iOS & Mobile Web App Controller
-// 100% Matches Android Material 3 UI & Architecture
+// 100% Matches Android Material 3 UI & Exact Feature Working
 import {
   auth,
   getDb,
@@ -15,7 +15,7 @@ import {
   onSnapshot,
   query,
   where
-} from "./firebase-config.js?v=2.0";
+} from "./firebase-config.js?v=2.1";
 
 // --- State Variables ---
 let currentUser = null;
@@ -33,6 +33,10 @@ let currentGpsLocation = null;
 let clockActionType = "IN";
 let capturedPhotoBase64 = null;
 let mediaStream = null;
+
+// Calendar State
+let calendarDate = new Date();
+let selectedCalendarDate = new Date();
 
 // Firestore real-time listener unsubs
 let unsubAttendances = null;
@@ -154,8 +158,8 @@ function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-function getMySettings() {
-  const email = (currentUser?.email || "").toLowerCase();
+function getMySettings(empEmail = null) {
+  const email = (empEmail || currentUser?.email || "").toLowerCase();
   return employeeSettingsList.find(s => (s.employeeId || "").toLowerCase() === email) || {
     employeeId: email,
     displayName: email.split("@")[0],
@@ -163,8 +167,59 @@ function getMySettings() {
     targetLongitude: 0,
     targetRadiusMeters: 100,
     baseSalary: 30000,
-    weekOffs: [0, 6]
+    checkInTimeHours: 9,
+    checkInTimeMinutes: 0,
+    checkOutTimeHours: 17,
+    checkOutTimeMinutes: 0,
+    weekOffs: [1, 7] // 1 = Sun, 7 = Sat matching Java Calendar
   };
+}
+
+// --- Android validateAttendance Implementation ---
+function validateAttendance(type) {
+  if (!currentUser) return "Please log in first.";
+  const email = currentUser.email.toLowerCase();
+  const settings = getMySettings();
+  const now = new Date();
+
+  // 1. Check if already marked today
+  const hasMarkedToday = attendances.some(a => {
+    if (a.employeeId.toLowerCase() !== email || a.type !== type) return false;
+    const d = new Date(a.timestamp);
+    return d.getFullYear() === now.getFullYear() &&
+           d.getMonth() === now.getMonth() &&
+           d.getDate() === now.getDate();
+  });
+
+  if (hasMarkedToday) {
+    return `You have already marked ${type} today.`;
+  }
+
+  // 2. Check week off (1 = Sunday, 7 = Saturday)
+  const currentDayOfWeek = now.getDay() + 1; // JS 0 = Sun -> 1, 6 = Sat -> 7
+  const weekOffs = settings.weekOffs || [1, 7];
+  if (weekOffs.includes(currentDayOfWeek)) {
+    return "You cannot mark attendance on your week off.";
+  }
+
+  // 3. Validate 1-hour time window
+  const scheduledTime = new Date(now.getTime());
+  if (type === "IN") {
+    scheduledTime.setHours(settings.checkInTimeHours ?? 9, settings.checkInTimeMinutes ?? 0, 0, 0);
+  } else {
+    scheduledTime.setHours(settings.checkOutTimeHours ?? 17, settings.checkOutTimeMinutes ?? 0, 0, 0);
+  }
+
+  const diffMs = Math.abs(now.getTime() - scheduledTime.getTime());
+  const diffHours = diffMs / (1000 * 60 * 60);
+
+  if (diffHours > 1.0) {
+    const h = String(type === "IN" ? (settings.checkInTimeHours ?? 9) : (settings.checkOutTimeHours ?? 17)).padStart(2, "0");
+    const m = String(type === "IN" ? (settings.checkInTimeMinutes ?? 0) : (settings.checkOutTimeMinutes ?? 0)).padStart(2, "0");
+    return `You can only mark ${type} within 1 hour of your scheduled time (${h}:${m}).`;
+  }
+
+  return null;
 }
 
 // --- Language Toggle Logic ---
@@ -178,7 +233,6 @@ if (btnLangToggle) {
 }
 
 function applyTranslations() {
-  // Login Screen
   const lblEmail = document.getElementById("lbl-email");
   if (lblEmail) lblEmail.textContent = t("Email");
 
@@ -194,14 +248,11 @@ function applyTranslations() {
 
   const btnSignUpToggle = document.getElementById("btn-signup-toggle");
   if (btnSignUpToggle) {
-    if (isSignUpMode) {
-      btnSignUpToggle.textContent = isHindi ? "पहले से खाता है? लॉग इन करें" : "Already have an account? Login";
-    } else {
-      btnSignUpToggle.textContent = isHindi ? "नया उपयोगकर्ता? खाता बनाएं" : "New user? Tap to Register / Sign Up";
-    }
+    btnSignUpToggle.textContent = isSignUpMode 
+      ? (isHindi ? "पहले से खाता है? लॉग इन करें" : "Already have an account? Login")
+      : (isHindi ? "नया उपयोगकर्ता? खाता बनाएं" : "New user? Tap to Register / Sign Up");
   }
 
-  // Main Screen
   const btnClockIn = document.getElementById("btn-clock-in");
   if (btnClockIn) btnClockIn.textContent = t("In");
 
@@ -299,7 +350,6 @@ async function performRegistration(email, pass) {
   try {
     const cred = await createUserWithEmailAndPassword(auth, email, pass);
     showAuthSuccess("Account created successfully! Logging in...");
-    // Create initial employee setting record in Firestore
     const db = getDb();
     const newEmpId = cred.user.email.toLowerCase();
     await setDoc(doc(db, "settings", newEmpId), {
@@ -310,6 +360,7 @@ async function performRegistration(email, pass) {
       checkInTimeMinutes: 0,
       checkOutTimeHours: 17,
       checkOutTimeMinutes: 0,
+      weekOffs: [1, 7],
       targetLatitude: 0,
       targetLongitude: 0,
       targetRadiusMeters: 100
@@ -424,9 +475,7 @@ if (btnAdminLogout) {
 // --- Navigation Handlers ---
 const btnEditProfile = document.getElementById("btn-edit-profile");
 if (btnEditProfile) {
-  btnEditProfile.addEventListener("click", () => {
-    openProfile();
-  });
+  btnEditProfile.addEventListener("click", openProfile);
 }
 
 const btnBackFromProfile = document.getElementById("btn-back-from-profile");
@@ -438,7 +487,7 @@ const btnViewAttendance = document.getElementById("btn-view-attendance");
 if (btnViewAttendance) {
   btnViewAttendance.addEventListener("click", () => {
     showView(viewHistory);
-    renderAttendanceHistory();
+    renderAttendanceCalendar();
   });
 }
 
@@ -524,7 +573,7 @@ function setupFirestoreListeners(email) {
     unsubAttendances = onSnapshot(attQuery, (snap) => {
       attendances = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-      renderAttendanceHistory();
+      renderAttendanceCalendar();
       renderSalaryReport();
       renderAdminDashboard();
     }, (err) => handleListenerError(err, "attendances"));
@@ -564,6 +613,13 @@ const cameraFallback = document.getElementById("file-upload-fallback");
 const cameraFileInput = document.getElementById("fallback-file-input");
 
 async function openAttendanceModal(type) {
+  // Run exact Android validation before opening camera!
+  const validationError = validateAttendance(type);
+  if (validationError) {
+    alert(validationError);
+    return;
+  }
+
   clockActionType = type;
   capturedPhotoBase64 = null;
 
@@ -697,6 +753,7 @@ if (btnSubmitAttendance) {
     if (!currentUser) return;
     const mySettings = getMySettings();
 
+    // Android Geofence distance validation
     if (currentGpsLocation && mySettings.targetLatitude !== 0 && mySettings.targetLongitude !== 0) {
       const dist = calculateDistanceMeters(
         currentGpsLocation.lat,
@@ -706,9 +763,8 @@ if (btnSubmitAttendance) {
       );
       const limit = mySettings.targetRadiusMeters || 100;
       if (dist > limit) {
-        if (!confirm(`You are ${Math.round(dist)}m away from office (allowed limit: ${limit}m). Submit anyway?`)) {
-          return;
-        }
+        alert(`You are too far from the attendance location. Distance: ${Math.round(dist)}m (allowed: ${limit}m)`);
+        return;
       }
     }
 
@@ -748,19 +804,123 @@ if (btnSubmitAttendance) {
   });
 }
 
-// --- Attendance History View ---
-function renderAttendanceHistory() {
-  const container = document.getElementById("history-container");
-  if (!container) return;
+// --- Interactive Attendance Calendar (Matches Android CalendarAttendanceView) ---
+const btnCalPrev = document.getElementById("btn-cal-prev");
+const btnCalNext = document.getElementById("btn-cal-next");
+if (btnCalPrev) {
+  btnCalPrev.addEventListener("click", () => {
+    calendarDate.setMonth(calendarDate.getMonth() - 1);
+    renderAttendanceCalendar();
+  });
+}
+if (btnCalNext) {
+  btnCalNext.addEventListener("click", () => {
+    calendarDate.setMonth(calendarDate.getMonth() + 1);
+    renderAttendanceCalendar();
+  });
+}
 
-  if (attendances.length === 0) {
-    container.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 40px 0;">No attendance records found.</div>`;
+function renderAttendanceCalendar() {
+  const monthTitle = document.getElementById("cal-month-title");
+  const gridContainer = document.getElementById("cal-grid-container");
+  const recordsContainer = document.getElementById("history-container");
+  const selectedDateTitle = document.getElementById("history-selected-date-title");
+
+  if (!gridContainer) return;
+
+  const year = calendarDate.getFullYear();
+  const month = calendarDate.getMonth();
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+  if (monthTitle) monthTitle.textContent = `${monthNames[month]} ${year}`;
+
+  const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun
+  const totalDays = new Date(year, month + 1, 0).getDate();
+
+  const dayHeaders = ["S", "M", "T", "W", "T", "F", "S"];
+  let html = dayHeaders.map(h => `<div style="font-weight: 700; color: #9E9E9E; font-size: 0.75rem; padding: 4px 0;">${h}</div>`).join("");
+
+  // Empty slots before month start
+  for (let i = 0; i < firstDayIndex; i++) {
+    html += `<div></div>`;
+  }
+
+  const mySettings = getMySettings();
+  const weekOffs = mySettings.weekOffs || [1, 7];
+  const userEmail = (currentUser?.email || "").toLowerCase();
+
+  const userAtts = attendances.filter(a => a.employeeId.toLowerCase() === userEmail);
+  const userLeaves = leaveRequests.filter(l => l.employeeId.toLowerCase() === userEmail && l.status === "APPROVED");
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+
+  for (let day = 1; day <= totalDays; day++) {
+    const d = new Date(year, month, day);
+    const dayOfWeek = d.getDay() + 1; // 1 = Sun, 7 = Sat
+
+    let dotColor = "transparent";
+    const isWeekOff = weekOffs.includes(dayOfWeek);
+    const hasAtt = userAtts.some(a => {
+      const ad = new Date(a.timestamp);
+      return ad.getFullYear() === year && ad.getMonth() === month && ad.getDate() === day;
+    });
+
+    const hasLeave = userLeaves.some(l => {
+      const ld = new Date(l.dateTimestamp);
+      return ld.getFullYear() === year && ld.getMonth() === month && ld.getDate() === day;
+    });
+
+    if (isWeekOff) {
+      dotColor = "#9E9E9E"; // Week off
+    } else if (hasAtt) {
+      dotColor = "#2E7D32"; // Present
+    } else if (hasLeave) {
+      dotColor = "#FB8C00"; // Leave
+    } else if (d < today) {
+      dotColor = "#E53935"; // Absent
+    }
+
+    const isSelected = selectedCalendarDate.getFullYear() === year &&
+                       selectedCalendarDate.getMonth() === month &&
+                       selectedCalendarDate.getDate() === day;
+
+    html += `
+      <div class="cal-day-cell" data-day="${day}" style="padding: 4px 0; cursor: pointer; border-radius: 8px; ${isSelected ? 'background: #FFEBEE;' : ''}">
+        <div style="font-size: 0.85rem; font-weight: ${isSelected ? '700' : '400'}; color: ${isSelected ? '#E53935' : '#1C1B1F'};">${day}</div>
+        <div style="width: 6px; height: 6px; border-radius: 50%; background: ${dotColor}; margin: 2px auto 0;"></div>
+      </div>
+    `;
+  }
+
+  gridContainer.innerHTML = html;
+
+  // Bind Day click
+  gridContainer.querySelectorAll(".cal-day-cell").forEach(cell => {
+    cell.addEventListener("click", () => {
+      const dayNum = parseInt(cell.getAttribute("data-day"));
+      selectedCalendarDate = new Date(year, month, dayNum);
+      renderAttendanceCalendar();
+    });
+  });
+
+  // Render Attendances for selected date
+  const selDateFormatted = selectedCalendarDate.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+  if (selectedDateTitle) selectedDateTitle.textContent = `Records for ${selDateFormatted}`;
+
+  const dayAtts = userAtts.filter(a => {
+    const d = new Date(a.timestamp);
+    return d.getFullYear() === selectedCalendarDate.getFullYear() &&
+           d.getMonth() === selectedCalendarDate.getMonth() &&
+           d.getDate() === selectedCalendarDate.getDate();
+  });
+
+  if (dayAtts.length === 0) {
+    recordsContainer.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 20px 0;">No attendance records for this date.</div>`;
     return;
   }
 
-  container.innerHTML = attendances.map(a => {
+  recordsContainer.innerHTML = dayAtts.map(a => {
     const d = new Date(a.timestamp);
-    const dateFormatted = d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
     const timeFormatted = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const isClockIn = a.type === "IN";
     const badgeColor = isClockIn ? "#2E7D32" : "#E53935";
@@ -774,7 +934,6 @@ function renderAttendanceHistory() {
             <span style="font-weight: 700; color: ${badgeColor}; font-size: 1.05rem;">${a.type}</span>
             <span style="font-size: 0.85rem; color: var(--text-secondary);">${timeFormatted}</span>
           </div>
-          <div style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: 2px;">${dateFormatted}</div>
           <div style="font-size: 0.78rem; color: var(--text-secondary);">${a.latitude ? `GPS: ${a.latitude.toFixed(4)}, ${a.longitude.toFixed(4)}` : "No GPS data"}</div>
         </div>
       </div>
@@ -884,12 +1043,13 @@ function renderSalaryReport() {
   const baseSalary = mySettings.baseSalary || 30000;
 
   const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
-  const weekOffs = mySettings.weekOffs || [0, 6];
+  const weekOffs = mySettings.weekOffs || [1, 7];
 
   let totalWorkingDays = 0;
   for (let day = 1; day <= daysInMonth; day++) {
     const d = new Date(year, monthIndex, day);
-    if (!weekOffs.includes(d.getDay())) {
+    const dayOfWeek = d.getDay() + 1; // 1 = Sun, 7 = Sat
+    if (!weekOffs.includes(dayOfWeek)) {
       totalWorkingDays++;
     }
   }
@@ -946,32 +1106,73 @@ function renderSalaryReport() {
 const btnExportCsv = document.getElementById("btn-export-csv-sal");
 if (btnExportCsv) {
   btnExportCsv.addEventListener("click", () => {
-    if (attendances.length === 0) {
-      alert("No attendance records to export.");
-      return;
+    exportMonthlyCsv();
+  });
+}
+
+const btnAdminExportCsv = document.getElementById("btn-admin-export-csv");
+if (btnAdminExportCsv) {
+  btnAdminExportCsv.addEventListener("click", () => {
+    exportMonthlyCsv();
+  });
+}
+
+function exportMonthlyCsv() {
+  const employees = Array.from(new Set([
+    ...employeeSettingsList.map(s => s.employeeId.toLowerCase()),
+    ...attendances.map(a => a.employeeId.toLowerCase())
+  ])).filter(e => e !== "admin");
+
+  let csv = "Employee Name,Base Salary,Total Working Days,Days Present,Approved Leaves,Days Absent,Per Day Salary,Deduction,Net Salary\n";
+  const now = new Date();
+  const year = now.getFullYear();
+  const month = now.getMonth();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  employees.forEach(empId => {
+    const s = getMySettings(empId);
+    const base = s.baseSalary || 30000;
+    const weekOffs = s.weekOffs || [1, 7];
+
+    let workingDays = 0;
+    for (let day = 1; day <= daysInMonth; day++) {
+      const d = new Date(year, month, day);
+      if (!weekOffs.includes(d.getDay() + 1)) workingDays++;
     }
-    const headers = ["ID", "Employee", "Date", "Time", "Type", "Latitude", "Longitude"];
-    const rows = attendances.map(a => {
+
+    const empAtts = attendances.filter(a => a.employeeId.toLowerCase() === empId);
+    const presentDates = new Set();
+    empAtts.forEach(a => {
       const d = new Date(a.timestamp);
-      return [
-        a.id,
-        a.employeeId,
-        d.toLocaleDateString(),
-        d.toLocaleTimeString(),
-        a.type,
-        a.latitude || 0,
-        a.longitude || 0
-      ];
+      if (d.getFullYear() === year && d.getMonth() === month) {
+        presentDates.add(d.getDate());
+      }
     });
 
-    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
-    const link = document.createElement("a");
-    link.setAttribute("href", encodeURI(csvContent));
-    link.setAttribute("download", `attendance_export_${Date.now()}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    const approvedLeaves = leaveRequests.filter(l => {
+      if (l.employeeId.toLowerCase() !== empId || l.status !== "APPROVED") return false;
+      const d = new Date(l.dateTimestamp);
+      return d.getFullYear() === year && d.getMonth() === month;
+    }).length;
+
+    const presentDays = presentDates.size;
+    const effectivePresent = Math.min(workingDays, presentDays + approvedLeaves);
+    const absentDays = Math.max(0, workingDays - effectivePresent);
+    const perDay = workingDays > 0 ? base / workingDays : 0;
+    const deduct = absentDays * perDay;
+    const net = Math.max(0, base - deduct);
+
+    csv += `"${s.displayName || empId}",${base},${workingDays},${presentDays},${approvedLeaves},${absentDays},${Math.round(perDay)},${Math.round(deduct)},${Math.round(net)}\n`;
   });
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `monthly_report_${Date.now()}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
 }
 
 // --- Chat View ---
@@ -1099,6 +1300,87 @@ if (avatarFileInput) {
   });
 }
 
+// --- Admin Employee Settings Modal ---
+const modalAdminSettings = document.getElementById("modal-admin-settings");
+const btnCloseSettingsModal = document.getElementById("btn-close-settings-modal");
+if (btnCloseSettingsModal) {
+  btnCloseSettingsModal.addEventListener("click", () => {
+    if (modalAdminSettings) modalAdminSettings.classList.remove("open");
+  });
+}
+
+function openAdminSettingsModal(employeeId) {
+  const s = getMySettings(employeeId);
+  document.getElementById("set-emp-id").value = employeeId;
+  document.getElementById("set-emp-name").value = s.displayName || employeeId.split("@")[0];
+  document.getElementById("set-emp-salary").value = s.baseSalary || 30000;
+  document.getElementById("set-in-hour").value = s.checkInTimeHours ?? 9;
+  document.getElementById("set-in-min").value = s.checkInTimeMinutes ?? 0;
+  document.getElementById("set-out-hour").value = s.checkOutTimeHours ?? 17;
+  document.getElementById("set-out-min").value = s.checkOutTimeMinutes ?? 0;
+
+  const offs = s.weekOffs || [1, 7];
+  for (let i = 1; i <= 7; i++) {
+    const chk = document.getElementById(`chk-off-${i}`);
+    if (chk) chk.checked = offs.includes(i);
+  }
+
+  document.getElementById("set-lat").value = s.targetLatitude || 0;
+  document.getElementById("set-lon").value = s.targetLongitude || 0;
+  document.getElementById("set-radius").value = s.targetRadiusMeters || 100;
+
+  if (modalAdminSettings) modalAdminSettings.classList.add("open");
+}
+
+const btnSetCurrentGps = document.getElementById("btn-set-current-gps");
+if (btnSetCurrentGps) {
+  btnSetCurrentGps.addEventListener("click", () => {
+    if (currentGpsLocation) {
+      document.getElementById("set-lat").value = currentGpsLocation.lat.toFixed(6);
+      document.getElementById("set-lon").value = currentGpsLocation.lon.toFixed(6);
+      alert("GPS location acquired!");
+    } else {
+      alert("Location not yet acquired. Please allow GPS access.");
+    }
+  });
+}
+
+const formAdminSettings = document.getElementById("form-admin-settings");
+if (formAdminSettings) {
+  formAdminSettings.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const empId = document.getElementById("set-emp-id").value;
+    const offs = [];
+    for (let i = 1; i <= 7; i++) {
+      const chk = document.getElementById(`chk-off-${i}`);
+      if (chk && chk.checked) offs.push(i);
+    }
+
+    const payload = {
+      employeeId: empId.toLowerCase(),
+      displayName: document.getElementById("set-emp-name").value.trim(),
+      baseSalary: parseFloat(document.getElementById("set-emp-salary").value) || 30000,
+      checkInTimeHours: parseInt(document.getElementById("set-in-hour").value) || 9,
+      checkInTimeMinutes: parseInt(document.getElementById("set-in-min").value) || 0,
+      checkOutTimeHours: parseInt(document.getElementById("set-out-hour").value) || 17,
+      checkOutTimeMinutes: parseInt(document.getElementById("set-out-min").value) || 0,
+      weekOffs: offs,
+      targetLatitude: parseFloat(document.getElementById("set-lat").value) || 0,
+      targetLongitude: parseFloat(document.getElementById("set-lon").value) || 0,
+      targetRadiusMeters: parseFloat(document.getElementById("set-radius").value) || 100
+    };
+
+    try {
+      const db = getDb();
+      await setDoc(doc(db, "settings", empId.toLowerCase()), payload, { merge: true });
+      alert("Settings saved successfully!");
+      if (modalAdminSettings) modalAdminSettings.classList.remove("open");
+    } catch (err) {
+      alert("Failed to save settings: " + err.message);
+    }
+  });
+}
+
 // --- Admin Dashboard View ---
 const tabBtnEmployees = document.getElementById("tab-btn-employees");
 const tabBtnLeaves = document.getElementById("tab-btn-leaves");
@@ -1131,24 +1413,38 @@ function renderAdminDashboard() {
   const pending = leaveRequests.filter(l => l.status === "PENDING");
   if (pendingCountEl) pendingCountEl.textContent = pending.length;
 
+  const allEmps = Array.from(new Set([
+    ...employeeSettingsList.map(s => s.employeeId.toLowerCase()),
+    ...attendances.map(a => a.employeeId.toLowerCase())
+  ])).filter(e => e !== "admin");
+
   // Render staff
   if (staffListEl) {
-    if (employeeSettingsList.length === 0) {
+    if (allEmps.length === 0) {
       staffListEl.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 20px;">No registered employees found.</div>`;
     } else {
-      staffListEl.innerHTML = employeeSettingsList.map(emp => {
-        const id = emp.employeeId || emp.id;
-        const name = emp.displayName || id.split("@")[0];
+      staffListEl.innerHTML = allEmps.map(empId => {
+        const s = getMySettings(empId);
+        const name = s.displayName || empId.split("@")[0];
         return `
           <div style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
-            <div>
+            <div style="cursor: pointer;" class="emp-row-info" data-id="${empId}">
               <div style="font-weight: 600; font-size: 1rem;">${name}</div>
-              <div style="font-size: 0.82rem; color: var(--text-secondary);">${id}</div>
+              <div style="font-size: 0.82rem; color: var(--text-secondary);">${empId}</div>
             </div>
-            <button type="button" class="btn-text btn-admin-chat-staff" data-id="${id}" style="font-size: 0.9rem;">Chat</button>
+            <div style="display: flex; gap: 6px;">
+              <button type="button" class="btn-text btn-admin-chat-staff" data-id="${empId}" style="font-size: 0.85rem; padding: 6px 10px;">Chat</button>
+              <button type="button" class="btn-text btn-admin-edit-staff" data-id="${empId}" style="font-size: 0.85rem; padding: 6px 10px;">⚙️</button>
+            </div>
           </div>
         `;
       }).join("");
+
+      staffListEl.querySelectorAll(".btn-admin-edit-staff, .emp-row-info").forEach(el => {
+        el.addEventListener("click", () => {
+          openAdminSettingsModal(el.getAttribute("data-id"));
+        });
+      });
 
       staffListEl.querySelectorAll(".btn-admin-chat-staff").forEach(btn => {
         btn.addEventListener("click", () => {

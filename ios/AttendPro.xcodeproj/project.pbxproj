@@ -17,6 +17,17 @@
 		1008 /* FirebaseService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2008 /* FirebaseService.swift */; };
 		1009 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2009 /* LoginView.swift */; };
 		1010 /* MainEmployeeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2010 /* MainEmployeeView.swift */; };
+		1013 /* AdminDashboardView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2014 /* AdminDashboardView.swift */; };
+		1014 /* AdminEmployeeSettingsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2015 /* AdminEmployeeSettingsView.swift */; };
+		1015 /* ManageLeavesView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2016 /* ManageLeavesView.swift */; };
+		1016 /* MonthlyReportView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2017 /* MonthlyReportView.swift */; };
+		1017 /* MarkAttendanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2018 /* MarkAttendanceView.swift */; };
+		1018 /* ViewAttendanceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2019 /* ViewAttendanceView.swift */; };
+		1019 /* SalaryCalculatorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2020 /* SalaryCalculatorView.swift */; };
+		1020 /* RequestLeaveView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2021 /* RequestLeaveView.swift */; };
+		1021 /* EmployeeProfileView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2022 /* EmployeeProfileView.swift */; };
+		1022 /* ChatListView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2023 /* ChatListView.swift */; };
+		1023 /* ChatView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2024 /* ChatView.swift */; };
 		1011 /* GoogleService-Info.plist in Resources */ = {isa = PBXBuildFile; fileRef = 2011 /* GoogleService-Info.plist */; };
 		1012 /* logo.png in Resources */ = {isa = PBXBuildFile; fileRef = 2013 /* logo.png */; };
 /* End PBXBuildFile section */
@@ -33,6 +44,17 @@
 		2008 /* FirebaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FirebaseService.swift; sourceTree = "<group>"; };
 		2009 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
 		2010 /* MainEmployeeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MainEmployeeView.swift; sourceTree = "<group>"; };
+		2014 /* AdminDashboardView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminDashboardView.swift; sourceTree = "<group>"; };
+		2015 /* AdminEmployeeSettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdminEmployeeSettingsView.swift; sourceTree = "<group>"; };
+		2016 /* ManageLeavesView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManageLeavesView.swift; sourceTree = "<group>"; };
+		2017 /* MonthlyReportView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MonthlyReportView.swift; sourceTree = "<group>"; };
+		2018 /* MarkAttendanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarkAttendanceView.swift; sourceTree = "<group>"; };
+		2019 /* ViewAttendanceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ViewAttendanceView.swift; sourceTree = "<group>"; };
+		2020 /* SalaryCalculatorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SalaryCalculatorView.swift; sourceTree = "<group>"; };
+		2021 /* RequestLeaveView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RequestLeaveView.swift; sourceTree = "<group>"; };
+		2022 /* EmployeeProfileView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EmployeeProfileView.swift; sourceTree = "<group>"; };
+		2023 /* ChatListView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatListView.swift; sourceTree = "<group>"; };
+		2024 /* ChatView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ChatView.swift; sourceTree = "<group>"; };
 		2011 /* GoogleService-Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = "GoogleService-Info.plist"; sourceTree = "<group>"; };
 		2012 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist.xml; path = Info.plist; sourceTree = "<group>"; };
 		2013 /* logo.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = logo.png; sourceTree = "<group>"; };
@@ -105,6 +127,17 @@
 			children = (
 				2009 /* LoginView.swift */,
 				2010 /* MainEmployeeView.swift */,
+				2014 /* AdminDashboardView.swift */,
+				2015 /* AdminEmployeeSettingsView.swift */,
+				2016 /* ManageLeavesView.swift */,
+				2017 /* MonthlyReportView.swift */,
+				2018 /* MarkAttendanceView.swift */,
+				2019 /* ViewAttendanceView.swift */,
+				2020 /* SalaryCalculatorView.swift */,
+				2021 /* RequestLeaveView.swift */,
+				2022 /* EmployeeProfileView.swift */,
+				2023 /* ChatListView.swift */,
+				2024 /* ChatView.swift */,
 			);
 			path = Views;
 			sourceTree = "<group>";
@@ -184,6 +217,17 @@
 				1008 /* FirebaseService.swift in Sources */,
 				1009 /* LoginView.swift in Sources */,
 				1010 /* MainEmployeeView.swift in Sources */,
+				1013 /* AdminDashboardView.swift in Sources */,
+				1014 /* AdminEmployeeSettingsView.swift in Sources */,
+				1015 /* ManageLeavesView.swift in Sources */,
+				1016 /* MonthlyReportView.swift in Sources */,
+				1017 /* MarkAttendanceView.swift in Sources */,
+				1018 /* ViewAttendanceView.swift in Sources */,
+				1019 /* SalaryCalculatorView.swift in Sources */,
+				1020 /* RequestLeaveView.swift in Sources */,
+				1021 /* EmployeeProfileView.swift in Sources */,
+				1022 /* ChatListView.swift in Sources */,
+				1023 /* ChatView.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

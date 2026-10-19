@@ -10,8 +10,7 @@ public struct AttendProApp: App {
         WindowGroup {
             if firebase.currentUserEmail != nil {
                 if firebase.isAdmin {
-                    // Admin View or Main Employee View
-                    MainEmployeeView()
+                    AdminDashboardView()
                 } else {
                     MainEmployeeView()
                 }

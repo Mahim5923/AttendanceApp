@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#FFFFFF">
   
-  <link rel="stylesheet" href="css/style.css?v=2.0">
+  <link rel="stylesheet" href="css/style.css?v=2.1">
 </head>
 <body>
 
@@ -104,13 +104,33 @@
     </div>
 
     <!-- ==========================================
-         3. VIEW ATTENDANCE SCREEN
+         3. VIEW ATTENDANCE SCREEN (With Calendar Attendance View)
          ========================================== -->
     <div class="view" id="view-history">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
         <h2 style="font-size: 1.3rem;">My Attendance</h2>
         <button class="btn-text" id="btn-back-from-history">Back</button>
       </div>
+
+      <!-- Month Navigation Bar -->
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #F8F9FA; border-radius: 12px; margin-bottom: 12px;">
+        <button class="btn-text" id="btn-cal-prev" style="padding: 4px 8px;">◀</button>
+        <div id="cal-month-title" style="font-weight: 700; font-size: 1rem;">Month Year</div>
+        <button class="btn-text" id="btn-cal-next" style="padding: 4px 8px;">▶</button>
+      </div>
+
+      <!-- Calendar Grid -->
+      <div id="cal-grid-container" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; margin-bottom: 12px;"></div>
+
+      <!-- Legend -->
+      <div style="display: flex; justify-content: space-around; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 16px;">
+        <div><span style="color: #2E7D32;">●</span> Present</div>
+        <div><span style="color: #E53935;">●</span> Absent</div>
+        <div><span style="color: #FB8C00;">●</span> Leave</div>
+        <div><span style="color: #9E9E9E;">●</span> Week Off</div>
+      </div>
+
+      <h3 style="font-size: 1rem; margin-bottom: 8px;" id="history-selected-date-title">Selected Date Records</h3>
       <div id="history-container" style="overflow-y: auto; flex: 1;">
         <!-- Records populated by JS -->
       </div>
@@ -231,12 +251,91 @@
         <button type="button" class="btn-m3 btn-m3-secondary" id="tab-btn-leaves" style="flex: 1; height: 44px; margin-bottom: 0;">Leaves (<span id="admin-pending-leaves-count">0</span>)</button>
       </div>
 
+      <div style="margin-bottom: 16px;">
+        <button type="button" class="btn-m3 btn-m3-secondary" id="btn-admin-export-csv" style="height: 44px;">
+          Export Monthly Report (.csv)
+        </button>
+      </div>
+
       <div id="admin-employees-section">
-        <div id="admin-staff-list" style="overflow-y: auto; max-height: calc(100vh - 200px);"></div>
+        <div id="admin-staff-list" style="overflow-y: auto; max-height: calc(100vh - 240px);"></div>
       </div>
 
       <div id="admin-leaves-section" style="display: none;">
-        <div id="admin-leaves-list" style="overflow-y: auto; max-height: calc(100vh - 200px);"></div>
+        <div id="admin-leaves-list" style="overflow-y: auto; max-height: calc(100vh - 240px);"></div>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         ADMIN EMPLOYEE SETTINGS MODAL
+         ========================================== -->
+    <div class="modal-overlay" id="modal-admin-settings">
+      <div class="modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 style="font-size: 1.2rem;">Employee Settings</h3>
+          <button type="button" class="btn-text" id="btn-close-settings-modal" style="padding: 4px;">✕</button>
+        </div>
+
+        <form id="form-admin-settings">
+          <input type="hidden" id="set-emp-id">
+
+          <div class="form-group">
+            <label class="field-label">Display Name</label>
+            <input type="text" id="set-emp-name" class="outlined-field" required>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label">Base Salary (₹)</label>
+            <input type="number" id="set-emp-salary" class="outlined-field" required>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+            <div style="flex: 1;">
+              <label class="field-label">Check-In Hour (0-23)</label>
+              <input type="number" id="set-in-hour" class="outlined-field" min="0" max="23" required>
+            </div>
+            <div style="flex: 1;">
+              <label class="field-label">Minute (0-59)</label>
+              <input type="number" id="set-in-min" class="outlined-field" min="0" max="59" required>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 8px; margin-bottom: 16px;">
+            <div style="flex: 1;">
+              <label class="field-label">Check-Out Hour (0-23)</label>
+              <input type="number" id="set-out-hour" class="outlined-field" min="0" max="23" required>
+            </div>
+            <div style="flex: 1;">
+              <label class="field-label">Minute (0-59)</label>
+              <input type="number" id="set-out-min" class="outlined-field" min="0" max="59" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label">Week Offs:</label>
+            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.9rem;">
+              <label><input type="checkbox" id="chk-off-1"> Sunday</label>
+              <label><input type="checkbox" id="chk-off-2"> Monday</label>
+              <label><input type="checkbox" id="chk-off-3"> Tuesday</label>
+              <label><input type="checkbox" id="chk-off-4"> Wednesday</label>
+              <label><input type="checkbox" id="chk-off-5"> Thursday</label>
+              <label><input type="checkbox" id="chk-off-6"> Friday</label>
+              <label><input type="checkbox" id="chk-off-7"> Saturday</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label">Office Geofence Location</label>
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <input type="number" step="any" id="set-lat" class="outlined-field" placeholder="Latitude" style="flex: 1;">
+              <input type="number" step="any" id="set-lon" class="outlined-field" placeholder="Longitude" style="flex: 1;">
+            </div>
+            <input type="number" id="set-radius" class="outlined-field" placeholder="Radius (Meters, default 100)" style="margin-bottom: 8px;">
+            <button type="button" class="btn-text" id="btn-set-current-gps">📍 Set to My Current GPS</button>
+          </div>
+
+          <button type="submit" class="btn-m3">Save Settings</button>
+        </form>
       </div>
     </div>
 
@@ -275,6 +374,6 @@
 
   </div>
 
-  <script type="module" src="js/app.js?v=2.0"></script>
+  <script type="module" src="js/app.js?v=2.1"></script>
 </body>
 </html>
