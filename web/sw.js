@@ -1,10 +1,8 @@
-const CACHE_NAME = 'attendpro-v3';
+const CACHE_NAME = 'attendpro-v5';
 const ASSETS = [
   './',
   './index.html',
   './css/style.css',
-  './js/firebase-config.js',
-  './js/app.js',
   './manifest.json',
   './icons/logo.png'
 ];
@@ -30,8 +28,12 @@ self.addEventListener('activate', (e) => {
 // Network-first strategy to ensure latest UI updates are always loaded immediately
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
-  if (e.request.url.includes('firestore.googleapis.com') || e.request.url.includes('firebase') || e.request.url.includes('googleapis.com')) {
-    return;
+  if (e.request.url.includes('firestore.googleapis.com') || 
+      e.request.url.includes('firebase') || 
+      e.request.url.includes('googleapis.com') ||
+      e.request.url.includes('app.js') ||
+      e.request.url.includes('firebase-config.js')) {
+    return; // Always fetch fresh over network
   }
   e.respondWith(
     fetch(e.request).then(response => {

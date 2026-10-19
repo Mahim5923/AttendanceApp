@@ -39,15 +39,26 @@ export const app = initializeApp(firebaseConfig);
 export const auth = getAuth(app);
 export const storage = getStorage(app);
 
-// Firestore initialized to 'attend' database
-export const db = getFirestore(app, "attend");
+// Firestore initialized to 'attend' database with fallback
+let dbInstance;
+try {
+  dbInstance = getFirestore(app, "attend");
+} catch (e) {
+  console.warn("Could not init named db 'attend', falling back to default db:", e);
+  dbInstance = getFirestore(app);
+}
+export const db = dbInstance;
 
 export function getDb() {
   return db;
 }
 
 export function fallbackToDefaultDb() {
-  return db;
+  try {
+    return getFirestore(app);
+  } catch (e) {
+    return db;
+  }
 }
 
 export {

@@ -319,112 +319,148 @@ function showAuthSuccess(message) {
   succBanner.textContent = message;
 }
 
-// --- Login Form Submit Handler ---
+// --- Robust Login Handler (Never reloads page, preserves input values) ---
+async function performLogin() {
+  const emailInput = document.getElementById("login-email");
+  const passInput = document.getElementById("login-password");
+  const rawInput = (emailInput?.value || "").trim();
+  const pass = (passInput?.value || "");
+  const btn = document.getElementById("btn-login-submit");
+  const txtBtn = document.getElementById("txt-login-btn");
+
+  if (!rawInput || !pass) {
+    showAuthError(isHindi ? "कृपया ईमेल और पासवर्ड दोनों दर्ज करें।" : "Please enter both email and password.");
+    return;
+  }
+
+  // Resolve 'admin' username to the admin account
+  let targetEmail = rawInput;
+  if (rawInput.toLowerCase() === "admin") {
+    targetEmail = "mahimsinhsingoria@gmail.com";
+  }
+
+  if (!targetEmail.includes("@")) {
+    showAuthError(isHindi ? "कृपया एक मान्य ईमेल दर्ज करें या 'admin' का उपयोग करें।" : "Please enter a valid email address (e.g. name@example.com) or 'admin'.");
+    return;
+  }
+
+  hideAuthBanners();
+  if (btn) btn.disabled = true;
+  if (txtBtn) txtBtn.textContent = isHindi ? "सत्यापित हो रहा है..." : "Authenticating...";
+
+  try {
+    // 1. Attempt standard Firebase Auth sign-in
+    await signInWithEmailAndPassword(auth, targetEmail, pass);
+  } catch (err) {
+    console.error("Sign-in error:", err);
+    const errCode = err.code || "";
+    const errMsg = err.message || "";
+
+    const isCredentialError = 
+      errCode === "auth/invalid-credential" || 
+      errCode === "auth/user-not-found" || 
+      errMsg.includes("INVALID_LOGIN_CREDENTIALS");
+
+    // If user account is not found in Firebase Auth, attempt auto-creation
+    // (Seamless onboarding for employees without needing a separate register button)
+    if (isCredentialError && targetEmail.toLowerCase() !== "mahimsinhsingoria@gmail.com") {
+      try {
+        if (txtBtn) txtBtn.textContent = isHindi ? "खाता तैयार हो रहा है..." : "Setting up account...";
+        const cred = await createUserWithEmailAndPassword(auth, targetEmail, pass);
+        
+        // Auto-provision default settings for new employee if not already set
+        try {
+          const db = getDb();
+          const empId = cred.user.email.toLowerCase();
+          await setDoc(doc(db, "settings", empId), {
+            employeeId: empId,
+            displayName: empId.split("@")[0],
+            baseSalary: 30000,
+            checkInTimeHours: 9,
+            checkInTimeMinutes: 0,
+            checkOutTimeHours: 17,
+            checkOutTimeMinutes: 0,
+            weekOffs: [1, 7],
+            targetLatitude: 0,
+            targetLongitude: 0,
+            targetRadiusMeters: 100
+          }, { merge: true });
+        } catch (settingsErr) {
+          console.warn("Settings creation non-fatal error:", settingsErr);
+        }
+        return; // Success! onAuthStateChanged will handle view switch
+      } catch (createErr) {
+        console.error("Auto-provision error:", createErr);
+        if (createErr.code === "auth/email-already-in-use") {
+          // Account exists, but the password entered during signIn was wrong!
+          showAuthError(isHindi ? "गलत पासवर्ड। कृपया पुनः प्रयास करें।" : "Incorrect password. Please try again.");
+          return;
+        } else if (createErr.code === "auth/weak-password") {
+          showAuthError(isHindi ? "पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।" : "Password must be at least 6 characters.");
+          return;
+        }
+      }
+    }
+
+    // Handle specific error codes
+    let msg = errMsg || "Login failed.";
+    if (errCode === "auth/wrong-password") {
+      msg = isHindi ? "गलत पासवर्ड। कृपया पुनः प्रयास करें।" : "Incorrect password. Please try again.";
+    } else if (isCredentialError) {
+      if (targetEmail.toLowerCase() === "mahimsinhsingoria@gmail.com") {
+        msg = isHindi ? "एडमिन पासवर्ड गलत है। कृपया पुनः प्रयास करें।" : "Incorrect admin password. Please try again.";
+      } else {
+        msg = isHindi ? "गलत ईमेल या पासवर्ड। कृपया पुनः प्रयास करें।" : "Incorrect email or password. Please try again.";
+      }
+    } else if (errCode === "auth/invalid-email") {
+      msg = isHindi ? "अमान्य ईमेल पता।" : "Invalid email format. Please check your email.";
+    } else if (errCode === "auth/network-request-failed") {
+      msg = isHindi ? "नेटवर्क त्रुटि। कृपया इंटरनेट कनेक्शन जांचें।" : "Network error. Please check your internet connection.";
+    } else if (errCode === "auth/too-many-requests") {
+      msg = isHindi ? "बहुत सारे असफल प्रयास। कृपया थोड़ी देर बाद पुनः प्रयास करें।" : "Access temporarily disabled due to many failed attempts. Try again later.";
+    }
+
+    showAuthError(msg);
+  } finally {
+    if (btn) btn.disabled = false;
+    applyTranslations();
+  }
+}
+
+// Bind both button click and form submit listeners
+const btnLoginSubmit = document.getElementById("btn-login-submit");
+if (btnLoginSubmit) {
+  btnLoginSubmit.addEventListener("click", (e) => {
+    e.preventDefault();
+    performLogin();
+  });
+}
+
 const loginForm = document.getElementById("login-form");
 if (loginForm) {
-  loginForm.addEventListener("submit", async (e) => {
+  loginForm.addEventListener("submit", (e) => {
     e.preventDefault();
-    const rawInput = (document.getElementById("login-email")?.value || "").trim();
-    const pass = (document.getElementById("login-password")?.value || "");
-    const btn = document.getElementById("btn-login-submit");
-    const txtBtn = document.getElementById("txt-login-btn");
+    performLogin();
+  });
+}
 
-    if (!rawInput || !pass) {
-      showAuthError(isHindi ? "कृपया ईमेल और पासवर्ड दोनों दर्ज करें।" : "Please enter both email and password.");
-      return;
+// Bind Enter key in inputs
+const loginPasswordInput = document.getElementById("login-password");
+if (loginPasswordInput) {
+  loginPasswordInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      performLogin();
     }
+  });
+}
 
-    // Resolve 'admin' username to the admin account
-    let targetEmail = rawInput;
-    if (rawInput.toLowerCase() === "admin") {
-      targetEmail = "mahimsinhsingoria@gmail.com";
-    }
-
-    if (!targetEmail.includes("@")) {
-      showAuthError(isHindi ? "कृपया एक मान्य ईमेल दर्ज करें या 'admin' का उपयोग करें।" : "Please enter a valid email address (e.g. name@example.com) or 'admin'.");
-      return;
-    }
-
-    hideAuthBanners();
-    if (btn) btn.disabled = true;
-    if (txtBtn) txtBtn.textContent = isHindi ? "सत्यापित हो रहा है..." : "Authenticating...";
-
-    try {
-      // 1. Attempt standard Firebase Auth sign-in
-      await signInWithEmailAndPassword(auth, targetEmail, pass);
-    } catch (err) {
-      console.error("Sign-in error:", err);
-      const errCode = err.code || "";
-      const errMsg = err.message || "";
-
-      const isCredentialError = 
-        errCode === "auth/invalid-credential" || 
-        errCode === "auth/user-not-found" || 
-        errMsg.includes("INVALID_LOGIN_CREDENTIALS");
-
-      // If user account is not found in Firebase Auth, attempt auto-creation
-      // (Seamless onboarding for employees without needing a separate register button)
-      if (isCredentialError && targetEmail.toLowerCase() !== "mahimsinhsingoria@gmail.com") {
-        try {
-          if (txtBtn) txtBtn.textContent = isHindi ? "खाता तैयार हो रहा है..." : "Setting up account...";
-          const cred = await createUserWithEmailAndPassword(auth, targetEmail, pass);
-          
-          // Auto-provision default settings for new employee if not already set
-          try {
-            const db = getDb();
-            const empId = cred.user.email.toLowerCase();
-            await setDoc(doc(db, "settings", empId), {
-              employeeId: empId,
-              displayName: empId.split("@")[0],
-              baseSalary: 30000,
-              checkInTimeHours: 9,
-              checkInTimeMinutes: 0,
-              checkOutTimeHours: 17,
-              checkOutTimeMinutes: 0,
-              weekOffs: [1, 7],
-              targetLatitude: 0,
-              targetLongitude: 0,
-              targetRadiusMeters: 100
-            }, { merge: true });
-          } catch (settingsErr) {
-            console.warn("Settings creation non-fatal error:", settingsErr);
-          }
-          return; // Success! onAuthStateChanged will handle view switch
-        } catch (createErr) {
-          console.error("Auto-provision error:", createErr);
-          if (createErr.code === "auth/email-already-in-use") {
-            // Account exists, but the password entered during signIn was wrong!
-            showAuthError(isHindi ? "गलत पासवर्ड। कृपया पुनः प्रयास करें।" : "Incorrect password. Please try again.");
-            return;
-          } else if (createErr.code === "auth/weak-password") {
-            showAuthError(isHindi ? "पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।" : "Password must be at least 6 characters.");
-            return;
-          }
-        }
-      }
-
-      // Handle specific error codes
-      let msg = errMsg || "Login failed.";
-      if (errCode === "auth/wrong-password") {
-        msg = isHindi ? "गलत पासवर्ड। कृपया पुनः प्रयास करें।" : "Incorrect password. Please try again.";
-      } else if (isCredentialError) {
-        if (targetEmail.toLowerCase() === "mahimsinhsingoria@gmail.com") {
-          msg = isHindi ? "एडमिन पासवर्ड गलत है। कृपया पुनः प्रयास करें।" : "Incorrect admin password. Please try again.";
-        } else {
-          msg = isHindi ? "गलत ईमेल या पासवर्ड। कृपया पुनः प्रयास करें।" : "Incorrect email or password. Please try again.";
-        }
-      } else if (errCode === "auth/invalid-email") {
-        msg = isHindi ? "अमान्य ईमेल पता।" : "Invalid email format. Please check your email.";
-      } else if (errCode === "auth/network-request-failed") {
-        msg = isHindi ? "नेटवर्क त्रुटि। कृपया इंटरनेट कनेक्शन जांचें।" : "Network error. Please check your internet connection.";
-      } else if (errCode === "auth/too-many-requests") {
-        msg = isHindi ? "बहुत सारे असफल प्रयास। कृपया थोड़ी देर बाद पुनः प्रयास करें।" : "Access temporarily disabled due to many failed attempts. Try again later.";
-      }
-
-      showAuthError(msg);
-    } finally {
-      if (btn) btn.disabled = false;
-      applyTranslations();
+const loginEmailInput = document.getElementById("login-email");
+if (loginEmailInput) {
+  loginEmailInput.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      loginPasswordInput?.focus();
     }
   });
 }
