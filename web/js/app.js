@@ -1,9 +1,11 @@
 // AttendPro - Modern iOS & Mobile Web App Controller
+// 100% Matches Android Material 3 UI & Architecture
 import {
   auth,
   getDb,
   fallbackToDefaultDb,
   signInWithEmailAndPassword,
+  createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
   collection,
@@ -13,12 +15,13 @@ import {
   onSnapshot,
   query,
   where
-} from "./firebase-config.js";
+} from "./firebase-config.js?v=2.0";
 
-// --- State ---
+// --- State Variables ---
 let currentUser = null;
 let isAdmin = false;
-let currentLanguage = "EN"; // "EN" or "HI"
+let isHindi = false;
+let isSignUpMode = false;
 
 let attendances = [];
 let employeeSettingsList = [];
@@ -27,95 +30,121 @@ let chatMessages = [];
 let activeChatPartner = null;
 
 let currentGpsLocation = null;
-let clockActionType = "IN"; // "IN" or "OUT"
+let clockActionType = "IN";
 let capturedPhotoBase64 = null;
 let mediaStream = null;
 
-// Realtime listeners
+// Firestore real-time listener unsubs
 let unsubAttendances = null;
 let unsubSettings = null;
 let unsubLeaves = null;
 let unsubMessages = null;
 
-// Language Dictionary (matching Android LanguageManager.kt)
+// --- Language Dictionary (100% matches Android LanguageManager.kt) ---
 const dictionary = {
   "Login": "लॉग इन करें",
   "Email": "ईमेल",
   "Password": "पासवर्ड",
-  "Admin Dashboard": "एडमिन डैशबोर्ड",
-  "Logout": "लॉग आउट",
-  "Manage Leave Requests": "छुट्टी के अनुरोध",
-  "Export Monthly Report (.csv)": "मासिक रिपोर्ट निर्यात करें (.csv)",
-  "Employees": "कर्मचारी",
-  "Edit Profile": "प्रोफ़ाइल संपादित करें",
   "In": "अंदर",
   "Out": "बाहर",
   "View My Attendance": "मेरी उपस्थिति",
   "Request Leave": "छुट्टी का अनुरोध",
   "Salary Calculator": "वेतन कैलकुलेटर",
-  "Take Photo & Mark Location": "फोटो लें और स्थान चिह्नित करें",
-  "Submit Request": "अनुरोध जमा करें",
-  "Save Profile": "प्रोफ़ाइल सहेजें",
-  "My Profile": "मेरी प्रोफ़ाइल",
-  "Take Profile Photo": "प्रोफ़ाइल फ़ोटो लें",
-  "Display Name": "दिखने वाला नाम",
-  "Reason for leave": "छुट्टी का कारण",
-  "My Leave Requests": "मेरे छुट्टी के अनुरोध",
+  "Logout": "लॉग आउट",
+  "Edit Profile": "प्रोफ़ाइल संपादित करें",
+  "Smart Attendance & Workforce Management": "स्मार्ट उपस्थिति एवं कार्यबल प्रबंधन",
   "My Attendance": "मेरी उपस्थिति",
-  "Settings": "सेटिंग्स",
-  "Base Salary (₹)": "मूल वेतन (₹)",
-  "Check-In Hour (24h)": "चेक-इन घंटा (24h)",
-  "Min": "मिनट",
-  "Check-Out Hour (24h)": "चेक-आउट घंटा (24h)",
-  "Save Settings": "सेटिंग्स सहेजें",
+  "Reason for leave": "छुट्टी का कारण",
+  "Submit Request": "अनुरोध जमा करें",
   "Salary Calculator Dashboard": "वेतन कैलकुलेटर",
+  "Export Monthly Report (.csv)": "मासिक रिपोर्ट निर्यात करें (.csv)",
+  "Chat with Admin": "एडमिन से चैट करें",
+  "Save Profile": "प्रोफ़ाइल सहेजें",
+  "Display Name": "दिखने वाला नाम",
+  "Admin Dashboard": "एडमिन डैशबोर्ड",
+  "Employees": "कर्मचारी",
+  "Leaves": "छुट्टियां",
   "Approve": "मंजूर",
   "Reject": "अस्वीकार"
 };
 
-function t(str) {
-  if (currentLanguage === "HI") {
-    return dictionary[str] || str;
+function t(text) {
+  if (isHindi && dictionary[text]) {
+    return dictionary[text];
   }
-  return str;
+  return text;
 }
 
 // --- DOM References ---
-const mainHeader = document.getElementById("main-header");
 const viewLogin = document.getElementById("view-login");
-const viewDashboard = document.getElementById("view-dashboard");
+const viewMain = document.getElementById("view-main");
 const viewHistory = document.getElementById("view-history");
-const viewSalary = document.getElementById("view-salary");
 const viewLeave = document.getElementById("view-leave");
+const viewSalary = document.getElementById("view-salary");
 const viewChat = document.getElementById("view-chat");
 const viewProfile = document.getElementById("view-profile");
 const viewAdmin = document.getElementById("view-admin");
 
-// Navigation View Switcher
-function showView(viewElement) {
-  [viewLogin, viewDashboard, viewHistory, viewSalary, viewLeave, viewChat, viewProfile, viewAdmin].forEach(v => {
+const allViews = [viewLogin, viewMain, viewHistory, viewLeave, viewSalary, viewChat, viewProfile, viewAdmin];
+
+function showView(targetView) {
+  allViews.forEach(v => {
     if (v) v.classList.remove("active");
   });
-  if (viewElement) {
-    viewElement.classList.add("active");
+  if (targetView) {
+    targetView.classList.add("active");
+    window.scrollTo(0, 0);
   }
 }
 
-// --- Live Clock ---
-function startClock() {
-  const timeEl = document.getElementById("dash-live-time");
-  const dateEl = document.getElementById("dash-live-date");
+// --- Live Clock & Date (Matches Android MainScreen SimpleDateFormat) ---
+function updateLiveClock() {
+  const clockEl = document.getElementById("main-live-datetime");
+  if (!clockEl) return;
 
-  setInterval(() => {
-    const now = new Date();
-    timeEl.textContent = now.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' });
-    dateEl.textContent = now.toLocaleDateString([], { weekday: 'long', year: 'numeric', month: 'short', day: 'numeric' });
-  }, 1000);
+  const now = new Date();
+  const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
+  const dayNamesHi = ["रविवार", "सोमवार", "मंगलवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
+  const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
+  const monthNamesHi = ["जनवरी", "फ़रवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई", "अगस्त", "सितंबर", "अक्टूबर", "नवंबर", "दिसंबर"];
+
+  const dayStr = isHindi ? dayNamesHi[now.getDay()] : dayNames[now.getDay()];
+  const dateNum = String(now.getDate()).padStart(2, "0");
+  const monthStr = isHindi ? monthNamesHi[now.getMonth()] : monthNames[now.getMonth()];
+  const year = now.getFullYear();
+
+  let hours = now.getHours();
+  const minutes = String(now.getMinutes()).padStart(2, "0");
+  const seconds = String(now.getSeconds()).padStart(2, "0");
+  const ampm = hours >= 12 ? "PM" : "AM";
+  hours = hours % 12;
+  hours = hours ? String(hours).padStart(2, "0") : "12";
+
+  const timeStr = `${hours}:${minutes}:${seconds} ${ampm}`;
+  clockEl.innerHTML = `${dayStr}, ${dateNum} ${monthStr} ${year}<br>${timeStr}`;
 }
+setInterval(updateLiveClock, 1000);
+updateLiveClock();
 
-// --- Geolocation & Haversine Distance ---
+// --- Geolocation Tracking ---
+function initGeolocation() {
+  if (!navigator.geolocation) return;
+  navigator.geolocation.watchPosition(
+    (pos) => {
+      currentGpsLocation = {
+        lat: pos.coords.latitude,
+        lon: pos.coords.longitude,
+        accuracy: pos.coords.accuracy
+      };
+    },
+    (err) => console.warn("GPS watch error:", err),
+    { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
+  );
+}
+initGeolocation();
+
 function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
-  const R = 6371e3; // Earth radius in meters
+  const R = 6371e3;
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
@@ -125,122 +154,342 @@ function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
   return R * c;
 }
 
-function initGeolocation() {
-  const geofenceText = document.getElementById("geofence-status-text");
-  const radarDot = document.getElementById("radar-indicator");
-
-  if (!navigator.geolocation) {
-    if (geofenceText) geofenceText.textContent = "Geolocation not supported";
-    return;
-  }
-
-  navigator.geolocation.watchPosition(
-    (pos) => {
-      currentGpsLocation = {
-        lat: pos.coords.latitude,
-        lon: pos.coords.longitude,
-        accuracy: pos.coords.accuracy
-      };
-
-      const mySettings = getMySettings();
-      if (mySettings && (mySettings.targetLatitude !== 0 || mySettings.targetLongitude !== 0)) {
-        const dist = calculateDistanceMeters(
-          currentGpsLocation.lat,
-          currentGpsLocation.lon,
-          mySettings.targetLatitude,
-          mySettings.targetLongitude
-        );
-        const inGeofence = dist <= (mySettings.targetRadiusMeters || 100);
-
-        if (inGeofence) {
-          radarDot.className = "radar-dot pulsing";
-          geofenceText.textContent = `Within Geofence (${Math.round(dist)}m to office)`;
-        } else {
-          radarDot.className = "radar-dot out-of-range";
-          geofenceText.textContent = `Outside Geofence (${Math.round(dist)}m away, limit ${mySettings.targetRadiusMeters || 100}m)`;
-        }
-      } else {
-        radarDot.className = "radar-dot pulsing";
-        geofenceText.textContent = `GPS Active (Accuracy ±${Math.round(pos.coords.accuracy)}m)`;
-      }
-    },
-    (err) => {
-      console.warn("Location error:", err);
-      if (geofenceText) geofenceText.textContent = "Location access needed for Geofence";
-    },
-    { enableHighAccuracy: true, maximumAge: 10000, timeout: 15000 }
-  );
-}
-
 function getMySettings() {
-  const email = currentUser?.email || "";
-  return employeeSettingsList.find(s => s.employeeId?.toLowerCase() === email.toLowerCase()) || {
+  const email = (currentUser?.email || "").toLowerCase();
+  return employeeSettingsList.find(s => (s.employeeId || "").toLowerCase() === email) || {
     employeeId: email,
+    displayName: email.split("@")[0],
     targetLatitude: 0,
     targetLongitude: 0,
     targetRadiusMeters: 100,
-    baseSalary: 0,
-    weekOffs: [0, 6] // Sun, Sat (0-indexed in JS)
+    baseSalary: 30000,
+    weekOffs: [0, 6]
   };
 }
 
-// --- Firebase Authentication ---
-document.getElementById("login-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const email = document.getElementById("login-email").value.trim();
-  const pass = document.getElementById("login-password").value;
-  const btn = document.getElementById("btn-login-submit");
-  const errEl = document.getElementById("login-error");
+// --- Language Toggle Logic ---
+const btnLangToggle = document.getElementById("btn-lang-toggle");
+if (btnLangToggle) {
+  btnLangToggle.addEventListener("click", () => {
+    isHindi = !isHindi;
+    btnLangToggle.textContent = isHindi ? "English" : "हिंदी";
+    applyTranslations();
+  });
+}
 
-  btn.disabled = true;
-  btn.textContent = "Authenticating...";
-  errEl.style.display = "none";
+function applyTranslations() {
+  // Login Screen
+  const lblEmail = document.getElementById("lbl-email");
+  if (lblEmail) lblEmail.textContent = t("Email");
+
+  const lblPassword = document.getElementById("lbl-password");
+  if (lblPassword) lblPassword.textContent = t("Password");
+
+  const txtLoginBtn = document.getElementById("txt-login-btn");
+  if (txtLoginBtn) {
+    txtLoginBtn.textContent = isSignUpMode 
+      ? (isHindi ? "खाता बनाएं" : "Create Account")
+      : (isHindi ? "लॉग इन करें" : "Login");
+  }
+
+  const btnSignUpToggle = document.getElementById("btn-signup-toggle");
+  if (btnSignUpToggle) {
+    if (isSignUpMode) {
+      btnSignUpToggle.textContent = isHindi ? "पहले से खाता है? लॉग इन करें" : "Already have an account? Login";
+    } else {
+      btnSignUpToggle.textContent = isHindi ? "नया उपयोगकर्ता? खाता बनाएं" : "New user? Tap to Register / Sign Up";
+    }
+  }
+
+  // Main Screen
+  const btnClockIn = document.getElementById("btn-clock-in");
+  if (btnClockIn) btnClockIn.textContent = t("In");
+
+  const btnClockOut = document.getElementById("btn-clock-out");
+  if (btnClockOut) btnClockOut.textContent = t("Out");
+
+  const btnViewAtt = document.getElementById("btn-view-attendance");
+  if (btnViewAtt) btnViewAtt.textContent = t("View My Attendance");
+
+  const btnReqLeave = document.getElementById("btn-request-leave");
+  if (btnReqLeave) btnReqLeave.textContent = t("Request Leave");
+
+  const btnSalCalc = document.getElementById("btn-salary-calc");
+  if (btnSalCalc) btnSalCalc.textContent = t("Salary Calculator");
+
+  const btnLogout = document.getElementById("btn-logout");
+  if (btnLogout) btnLogout.textContent = t("Logout");
+
+  const btnEditProf = document.getElementById("btn-edit-profile");
+  if (btnEditProf) btnEditProf.textContent = t("Edit Profile");
+
+  updateWelcomeText();
+  updateLiveClock();
+}
+
+function updateWelcomeText() {
+  const welcomeEl = document.getElementById("main-welcome-text");
+  if (!welcomeEl || !currentUser) return;
+  const settings = getMySettings();
+  const name = settings.displayName || currentUser.email.split("@")[0];
+  welcomeEl.textContent = isHindi ? `स्वागत है, ${name}` : `Welcome, ${name}`;
+}
+
+// --- Toggle Login / Sign Up Mode ---
+const btnSignupToggle = document.getElementById("btn-signup-toggle");
+if (btnSignupToggle) {
+  btnSignupToggle.addEventListener("click", () => {
+    isSignUpMode = !isSignUpMode;
+    hideAuthBanners();
+    applyTranslations();
+  });
+}
+
+function hideAuthBanners() {
+  const errBanner = document.getElementById("login-error-banner");
+  const succBanner = document.getElementById("login-success-banner");
+  if (errBanner) {
+    errBanner.style.display = "none";
+    errBanner.innerHTML = "";
+  }
+  if (succBanner) {
+    succBanner.style.display = "none";
+    succBanner.innerHTML = "";
+  }
+}
+
+function showAuthError(message, showRegisterFallback = false, email = "", pass = "") {
+  const errBanner = document.getElementById("login-error-banner");
+  if (!errBanner) return;
+  errBanner.style.display = "block";
+
+  if (showRegisterFallback && email && pass) {
+    errBanner.innerHTML = `
+      <div><strong>Login Failed:</strong> ${message}</div>
+      <div style="margin-top: 10px;">
+        <button type="button" id="btn-quick-register" style="background: #E53935; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer;">
+          Create new account for ${email}
+        </button>
+      </div>
+    `;
+    const quickBtn = document.getElementById("btn-quick-register");
+    if (quickBtn) {
+      quickBtn.addEventListener("click", () => performRegistration(email, pass));
+    }
+  } else {
+    errBanner.textContent = message;
+  }
+}
+
+function showAuthSuccess(message) {
+  const succBanner = document.getElementById("login-success-banner");
+  if (!succBanner) return;
+  succBanner.style.display = "block";
+  succBanner.textContent = message;
+}
+
+// --- Perform Registration Helper ---
+async function performRegistration(email, pass) {
+  const btn = document.getElementById("btn-login-submit");
+  const txtBtn = document.getElementById("txt-login-btn");
+  if (btn) btn.disabled = true;
+  if (txtBtn) txtBtn.textContent = "Creating Account...";
+  hideAuthBanners();
 
   try {
-    await signInWithEmailAndPassword(auth, email, pass);
-  } catch (error) {
-    errEl.textContent = error.message || "Failed to log in";
-    errEl.style.display = "block";
-    btn.disabled = false;
-    btn.textContent = "Login";
+    const cred = await createUserWithEmailAndPassword(auth, email, pass);
+    showAuthSuccess("Account created successfully! Logging in...");
+    // Create initial employee setting record in Firestore
+    const db = getDb();
+    const newEmpId = cred.user.email.toLowerCase();
+    await setDoc(doc(db, "settings", newEmpId), {
+      employeeId: newEmpId,
+      displayName: newEmpId.split("@")[0],
+      baseSalary: 30000,
+      checkInTimeHours: 9,
+      checkInTimeMinutes: 0,
+      checkOutTimeHours: 17,
+      checkOutTimeMinutes: 0,
+      targetLatitude: 0,
+      targetLongitude: 0,
+      targetRadiusMeters: 100
+    }, { merge: true });
+  } catch (err) {
+    console.error("Registration error:", err);
+    let msg = err.message || "Failed to create account.";
+    if (err.code === "auth/email-already-in-use") {
+      msg = "Email is already registered. Please enter your existing password to log in.";
+    } else if (err.code === "auth/weak-password") {
+      msg = "Password should be at least 6 characters.";
+    } else if (err.code === "auth/invalid-email") {
+      msg = "Invalid email format.";
+    }
+    showAuthError(msg);
+  } finally {
+    if (btn) btn.disabled = false;
+    applyTranslations();
   }
-});
+}
 
+// --- Login Form Submit Handler ---
+const loginForm = document.getElementById("login-form");
+if (loginForm) {
+  loginForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const email = document.getElementById("login-email").value.trim();
+    const pass = document.getElementById("login-password").value;
+    const btn = document.getElementById("btn-login-submit");
+    const txtBtn = document.getElementById("txt-login-btn");
+
+    if (!email || !pass) {
+      showAuthError("Please enter both email and password.");
+      return;
+    }
+
+    hideAuthBanners();
+    if (btn) btn.disabled = true;
+    if (txtBtn) txtBtn.textContent = isSignUpMode ? "Registering..." : "Authenticating...";
+
+    if (isSignUpMode) {
+      await performRegistration(email, pass);
+      return;
+    }
+
+    try {
+      await signInWithEmailAndPassword(auth, email, pass);
+    } catch (err) {
+      console.error("Sign-in error:", err);
+      let msg = err.message || "Login failed.";
+      let offerRegistration = false;
+
+      if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.message?.includes("INVALID_LOGIN_CREDENTIALS")) {
+        msg = "Account not found or password incorrect.";
+        offerRegistration = true;
+      } else if (err.code === "auth/wrong-password") {
+        msg = "Incorrect password. Please try again.";
+      } else if (err.code === "auth/network-request-failed") {
+        msg = "Network error. Please check your internet connection.";
+      }
+
+      showAuthError(msg, offerRegistration, email, pass);
+    } finally {
+      if (btn) btn.disabled = false;
+      applyTranslations();
+    }
+  });
+}
+
+// --- Auth State Observer ---
 onAuthStateChanged(auth, (user) => {
   currentUser = user;
   if (user) {
     const userEmail = (user.email || "").toLowerCase();
     isAdmin = userEmail === "admin" || userEmail === "mahimsinhsingoria@gmail.com";
-    mainHeader.style.display = "flex";
-    document.getElementById("btn-header-profile").title = user.email;
-
-    setupFirestoreListeners(user.email);
+    setupFirestoreListeners(userEmail);
+    updateWelcomeText();
 
     if (isAdmin) {
       showView(viewAdmin);
+      renderAdminDashboard();
     } else {
-      showView(viewDashboard);
+      showView(viewMain);
     }
   } else {
     detachListeners();
-    mainHeader.style.display = "none";
     showView(viewLogin);
-    const btn = document.getElementById("btn-login-submit");
-    if (btn) {
-      btn.disabled = false;
-      btn.textContent = "Login";
+    hideAuthBanners();
+    applyTranslations();
+  }
+});
+
+// Logout Handlers
+const btnLogout = document.getElementById("btn-logout");
+if (btnLogout) {
+  btnLogout.addEventListener("click", () => {
+    if (confirm("Are you sure you want to log out?")) {
+      signOut(auth);
     }
-  }
-});
+  });
+}
 
-// Logout
-document.getElementById("btn-header-logout").addEventListener("click", () => {
-  if (confirm("Are you sure you want to log out?")) {
-    signOut(auth);
-  }
-});
+const btnAdminLogout = document.getElementById("btn-admin-logout");
+if (btnAdminLogout) {
+  btnAdminLogout.addEventListener("click", () => {
+    if (confirm("Are you sure you want to log out?")) {
+      signOut(auth);
+    }
+  });
+}
 
-// --- Firestore Realtime Listeners with Fallback ---
+// --- Navigation Handlers ---
+const btnEditProfile = document.getElementById("btn-edit-profile");
+if (btnEditProfile) {
+  btnEditProfile.addEventListener("click", () => {
+    openProfile();
+  });
+}
+
+const btnBackFromProfile = document.getElementById("btn-back-from-profile");
+if (btnBackFromProfile) {
+  btnBackFromProfile.addEventListener("click", () => showView(isAdmin ? viewAdmin : viewMain));
+}
+
+const btnViewAttendance = document.getElementById("btn-view-attendance");
+if (btnViewAttendance) {
+  btnViewAttendance.addEventListener("click", () => {
+    showView(viewHistory);
+    renderAttendanceHistory();
+  });
+}
+
+const btnBackFromHistory = document.getElementById("btn-back-from-history");
+if (btnBackFromHistory) {
+  btnBackFromHistory.addEventListener("click", () => showView(isAdmin ? viewAdmin : viewMain));
+}
+
+const btnRequestLeave = document.getElementById("btn-request-leave");
+if (btnRequestLeave) {
+  btnRequestLeave.addEventListener("click", () => {
+    showView(viewLeave);
+    renderLeaveRequests();
+  });
+}
+
+const btnBackFromLeave = document.getElementById("btn-back-from-leave");
+if (btnBackFromLeave) {
+  btnBackFromLeave.addEventListener("click", () => showView(isAdmin ? viewAdmin : viewMain));
+}
+
+const btnSalaryCalc = document.getElementById("btn-salary-calc");
+if (btnSalaryCalc) {
+  btnSalaryCalc.addEventListener("click", () => {
+    showView(viewSalary);
+    renderSalaryReport();
+  });
+}
+
+const btnBackFromSalary = document.getElementById("btn-back-from-salary");
+if (btnBackFromSalary) {
+  btnBackFromSalary.addEventListener("click", () => showView(isAdmin ? viewAdmin : viewMain));
+}
+
+const fabChatBtn = document.getElementById("fab-chat-btn");
+if (fabChatBtn) {
+  fabChatBtn.addEventListener("click", () => {
+    activeChatPartner = null;
+    const title = document.getElementById("chat-title");
+    if (title) title.textContent = isAdmin ? "Messages" : "Chat with Admin";
+    showView(viewChat);
+    renderChatMessages();
+  });
+}
+
+const btnBackFromChat = document.getElementById("btn-back-from-chat");
+if (btnBackFromChat) {
+  btnBackFromChat.addEventListener("click", () => showView(isAdmin ? viewAdmin : viewMain));
+}
+
+// --- Firestore Realtime Listeners ---
 function detachListeners() {
   if (unsubAttendances) unsubAttendances();
   if (unsubSettings) unsubSettings();
@@ -255,7 +504,6 @@ function setupFirestoreListeners(email) {
   const handleListenerError = (err, context) => {
     console.error(`Firestore error in ${context}:`, err);
     if (err.code === "not-found" || err.message?.includes("database")) {
-      console.warn("Database not found, switching to default database...");
       db = fallbackToDefaultDb();
       setupFirestoreListeners(email);
     }
@@ -266,8 +514,8 @@ function setupFirestoreListeners(email) {
     const settingsCol = collection(db, "settings");
     unsubSettings = onSnapshot(settingsCol, (snap) => {
       employeeSettingsList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+      updateWelcomeText();
       renderAdminDashboard();
-      updateDashboardStatus();
     }, (err) => handleListenerError(err, "settings"));
 
     // 2. Attendances listener
@@ -276,7 +524,6 @@ function setupFirestoreListeners(email) {
     unsubAttendances = onSnapshot(attQuery, (snap) => {
       attendances = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
-      updateDashboardStatus();
       renderAttendanceHistory();
       renderSalaryReport();
       renderAdminDashboard();
@@ -300,109 +547,76 @@ function setupFirestoreListeners(email) {
       renderChatMessages();
     }, (err) => handleListenerError(err, "messages"));
 
-  } catch (e) {
-    console.error("Setup listeners failed:", e);
-    fallbackToDefaultDb();
+  } catch (err) {
+    console.error("Error setting up listeners:", err);
   }
 }
 
-// --- Dashboard Status Badge ---
-function updateDashboardStatus() {
-  const badge = document.getElementById("dash-status-badge");
-  const greeting = document.getElementById("dash-greeting");
-  if (!badge) return;
-
-  const myEmail = currentUser?.email || "";
-  greeting.textContent = myEmail.split("@")[0] || "Welcome back";
-
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-
-  const todayRecords = attendances.filter(a => 
-    a.employeeId?.toLowerCase() === myEmail.toLowerCase() && 
-    (a.timestamp || 0) >= todayStart.getTime()
-  );
-
-  if (todayRecords.length === 0) {
-    badge.className = "badge badge-out";
-    badge.textContent = "NOT MARKED TODAY";
-  } else {
-    const lastRecord = todayRecords[0]; // sorted descending
-    if (lastRecord.type === "IN") {
-      const timeStr = new Date(lastRecord.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      badge.className = "badge badge-in";
-      badge.textContent = `CHECKED IN AT ${timeStr}`;
-    } else {
-      const timeStr = new Date(lastRecord.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-      badge.className = "badge badge-out";
-      badge.textContent = `CHECKED OUT AT ${timeStr}`;
-    }
-  }
-}
-
-// --- Camera & Attendance Clocking Modal ---
-const modalCamera = document.getElementById("modal-camera");
-const cameraVideo = document.getElementById("camera-video");
-const cameraCanvas = document.getElementById("camera-canvas");
-const cameraPhotoPreview = document.getElementById("camera-photo-preview");
-const btnCapturePhoto = document.getElementById("btn-capture-photo");
-const btnRetakePhoto = document.getElementById("btn-retake-photo");
-const btnSubmitAttendance = document.getElementById("btn-submit-attendance");
-const cameraFallback = document.getElementById("camera-fallback");
-const cameraFileInput = document.getElementById("camera-file-input");
+// --- Attendance Camera & Geofence Modal ---
+const modalCamera = document.getElementById("modal-attendance-camera");
+const cameraVideo = document.getElementById("live-camera-video");
+const cameraCanvas = document.getElementById("live-camera-canvas");
+const cameraPhotoPreview = document.getElementById("captured-photo-display");
+const btnCapturePhoto = document.getElementById("btn-camera-capture");
+const btnRetakePhoto = document.getElementById("btn-camera-retake");
+const btnSubmitAttendance = document.getElementById("btn-attendance-submit");
+const cameraFallback = document.getElementById("file-upload-fallback");
+const cameraFileInput = document.getElementById("fallback-file-input");
 
 async function openAttendanceModal(type) {
   clockActionType = type;
   capturedPhotoBase64 = null;
-  document.getElementById("camera-modal-title").textContent = `Mark ${type} Attendance`;
-  
-  cameraVideo.style.display = "block";
-  cameraPhotoPreview.style.display = "none";
-  btnCapturePhoto.style.display = "inline-flex";
-  btnRetakePhoto.style.display = "none";
-  btnSubmitAttendance.style.display = "none";
 
-  const modalGeofenceText = document.getElementById("modal-geofence-text");
-  const modalRadarDot = document.getElementById("modal-radar-dot");
+  const titleEl = document.getElementById("modal-action-title");
+  if (titleEl) titleEl.textContent = `Mark Attendance - ${type}`;
 
-  // Geofence check
+  if (cameraPhotoPreview) cameraPhotoPreview.style.display = "none";
+  if (cameraVideo) cameraVideo.style.display = "block";
+  if (btnCapturePhoto) btnCapturePhoto.style.display = "inline-flex";
+  if (btnRetakePhoto) btnRetakePhoto.style.display = "none";
+  if (btnSubmitAttendance) btnSubmitAttendance.style.display = "none";
+
+  const geofenceAlert = document.getElementById("geofence-alert");
   const mySettings = getMySettings();
-  if (currentGpsLocation && (mySettings.targetLatitude !== 0 || mySettings.targetLongitude !== 0)) {
+
+  if (currentGpsLocation && mySettings.targetLatitude !== 0 && mySettings.targetLongitude !== 0) {
     const dist = calculateDistanceMeters(
       currentGpsLocation.lat,
       currentGpsLocation.lon,
       mySettings.targetLatitude,
       mySettings.targetLongitude
     );
-    if (dist <= (mySettings.targetRadiusMeters || 100)) {
-      modalRadarDot.className = "radar-dot pulsing";
-      modalGeofenceText.textContent = `Verified: Inside office perimeter (${Math.round(dist)}m)`;
+    const limit = mySettings.targetRadiusMeters || 100;
+    if (dist <= limit) {
+      if (geofenceAlert) geofenceAlert.textContent = `Within Geofence (${Math.round(dist)}m to office)`;
     } else {
-      modalRadarDot.className = "radar-dot out-of-range";
-      modalGeofenceText.textContent = `Warning: ${Math.round(dist)}m from office (limit: ${mySettings.targetRadiusMeters}m)`;
+      if (geofenceAlert) geofenceAlert.textContent = `Warning: ${Math.round(dist)}m away from office (allowed limit: ${limit}m)`;
     }
   } else {
-    modalGeofenceText.textContent = "GPS Location captured";
+    if (geofenceAlert) geofenceAlert.textContent = "Acquiring GPS location...";
   }
 
-  modalCamera.classList.add("open");
+  if (modalCamera) modalCamera.classList.add("open");
 
-  // Start Camera
+  // Start Camera Stream
   try {
     if (navigator.mediaDevices && navigator.mediaDevices.getUserMedia) {
       mediaStream = await navigator.mediaDevices.getUserMedia({
         video: { facingMode: "user", width: { ideal: 640 }, height: { ideal: 480 } },
         audio: false
       });
-      cameraVideo.srcObject = mediaStream;
-      cameraFallback.style.display = "none";
+      if (cameraVideo) {
+        cameraVideo.srcObject = mediaStream;
+        cameraVideo.style.display = "block";
+      }
+      if (cameraFallback) cameraFallback.style.display = "none";
     } else {
-      cameraFallback.style.display = "block";
+      if (cameraFallback) cameraFallback.style.display = "block";
     }
   } catch (err) {
-    console.warn("Camera access error:", err);
-    cameraFallback.style.display = "block";
-    cameraVideo.style.display = "none";
+    console.warn("Camera access failed, showing fallback upload:", err);
+    if (cameraFallback) cameraFallback.style.display = "block";
+    if (cameraVideo) cameraVideo.style.display = "none";
   }
 }
 
@@ -411,364 +625,417 @@ function closeCameraModal() {
     mediaStream.getTracks().forEach(track => track.stop());
     mediaStream = null;
   }
-  modalCamera.classList.remove("open");
+  if (modalCamera) modalCamera.classList.remove("open");
 }
 
-document.getElementById("btn-clock-in").addEventListener("click", () => openAttendanceModal("IN"));
-document.getElementById("btn-clock-out").addEventListener("click", () => openAttendanceModal("OUT"));
-document.getElementById("btn-close-camera").addEventListener("click", closeCameraModal);
+const btnClockIn = document.getElementById("btn-clock-in");
+if (btnClockIn) btnClockIn.addEventListener("click", () => openAttendanceModal("IN"));
 
-btnCapturePhoto.addEventListener("click", () => {
-  if (cameraVideo.srcObject) {
-    const w = cameraVideo.videoWidth || 400;
-    const h = cameraVideo.videoHeight || 300;
-    cameraCanvas.width = Math.min(w, 400);
-    cameraCanvas.height = Math.round(h * (cameraCanvas.width / w));
-    const ctx = cameraCanvas.getContext("2d");
-    ctx.drawImage(cameraVideo, 0, 0, cameraCanvas.width, cameraCanvas.height);
-    capturedPhotoBase64 = cameraCanvas.toDataURL("image/jpeg", 0.7);
+const btnClockOut = document.getElementById("btn-clock-out");
+if (btnClockOut) btnClockOut.addEventListener("click", () => openAttendanceModal("OUT"));
 
-    cameraPhotoPreview.src = capturedPhotoBase64;
-    cameraPhotoPreview.style.display = "block";
-    cameraVideo.style.display = "none";
+const btnCloseCamera = document.getElementById("btn-close-camera-modal");
+if (btnCloseCamera) btnCloseCamera.addEventListener("click", closeCameraModal);
 
-    btnCapturePhoto.style.display = "none";
-    btnRetakePhoto.style.display = "inline-flex";
-    btnSubmitAttendance.style.display = "inline-flex";
-  }
-});
+if (btnCapturePhoto) {
+  btnCapturePhoto.addEventListener("click", () => {
+    if (cameraVideo && cameraVideo.srcObject) {
+      const w = cameraVideo.videoWidth || 400;
+      const h = cameraVideo.videoHeight || 300;
+      cameraCanvas.width = Math.min(w, 400);
+      cameraCanvas.height = Math.round(h * (cameraCanvas.width / w));
+      const ctx = cameraCanvas.getContext("2d");
+      ctx.drawImage(cameraVideo, 0, 0, cameraCanvas.width, cameraCanvas.height);
+      capturedPhotoBase64 = cameraCanvas.toDataURL("image/jpeg", 0.7);
 
-btnRetakePhoto.addEventListener("click", () => {
-  capturedPhotoBase64 = null;
-  cameraPhotoPreview.style.display = "none";
-  cameraVideo.style.display = "block";
-  btnCapturePhoto.style.display = "inline-flex";
-  btnRetakePhoto.style.display = "none";
-  btnSubmitAttendance.style.display = "none";
-});
+      if (cameraPhotoPreview) {
+        cameraPhotoPreview.src = capturedPhotoBase64;
+        cameraPhotoPreview.style.display = "block";
+      }
+      cameraVideo.style.display = "none";
+      btnCapturePhoto.style.display = "none";
+      if (btnRetakePhoto) btnRetakePhoto.style.display = "inline-flex";
+      if (btnSubmitAttendance) btnSubmitAttendance.style.display = "inline-flex";
+    }
+  });
+}
 
-cameraFileInput.addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    capturedPhotoBase64 = ev.target.result;
-    cameraPhotoPreview.src = capturedPhotoBase64;
-    cameraPhotoPreview.style.display = "block";
-    cameraFallback.style.display = "none";
-    btnCapturePhoto.style.display = "none";
-    btnRetakePhoto.style.display = "inline-flex";
-    btnSubmitAttendance.style.display = "inline-flex";
-  };
-  reader.readAsDataURL(file);
-});
+if (btnRetakePhoto) {
+  btnRetakePhoto.addEventListener("click", () => {
+    capturedPhotoBase64 = null;
+    if (cameraPhotoPreview) cameraPhotoPreview.style.display = "none";
+    if (cameraVideo) cameraVideo.style.display = "block";
+    if (btnCapturePhoto) btnCapturePhoto.style.display = "inline-flex";
+    btnRetakePhoto.style.display = "none";
+    if (btnSubmitAttendance) btnSubmitAttendance.style.display = "none";
+  });
+}
 
-// Submit Attendance to Firestore
-btnSubmitAttendance.addEventListener("click", async () => {
-  if (!currentUser) return;
-  const mySettings = getMySettings();
+if (cameraFileInput) {
+  cameraFileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      capturedPhotoBase64 = ev.target.result;
+      if (cameraPhotoPreview) {
+        cameraPhotoPreview.src = capturedPhotoBase64;
+        cameraPhotoPreview.style.display = "block";
+      }
+      if (cameraFallback) cameraFallback.style.display = "none";
+      if (btnCapturePhoto) btnCapturePhoto.style.display = "none";
+      if (btnRetakePhoto) btnRetakePhoto.style.display = "inline-flex";
+      if (btnSubmitAttendance) btnSubmitAttendance.style.display = "inline-flex";
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
-  // Geofence enforcement
-  if (currentGpsLocation && mySettings.targetLatitude !== 0 && mySettings.targetLongitude !== 0) {
-    const dist = calculateDistanceMeters(
-      currentGpsLocation.lat,
-      currentGpsLocation.lon,
-      mySettings.targetLatitude,
-      mySettings.targetLongitude
-    );
-    if (dist > (mySettings.targetRadiusMeters || 100)) {
-      if (!confirm(`You are ${Math.round(dist)}m away from office (allowed: ${mySettings.targetRadiusMeters}m). Submit anyway?`)) {
-        return;
+// Attendance Submit
+if (btnSubmitAttendance) {
+  btnSubmitAttendance.addEventListener("click", async () => {
+    if (!currentUser) return;
+    const mySettings = getMySettings();
+
+    if (currentGpsLocation && mySettings.targetLatitude !== 0 && mySettings.targetLongitude !== 0) {
+      const dist = calculateDistanceMeters(
+        currentGpsLocation.lat,
+        currentGpsLocation.lon,
+        mySettings.targetLatitude,
+        mySettings.targetLongitude
+      );
+      const limit = mySettings.targetRadiusMeters || 100;
+      if (dist > limit) {
+        if (!confirm(`You are ${Math.round(dist)}m away from office (allowed limit: ${limit}m). Submit anyway?`)) {
+          return;
+        }
       }
     }
-  }
 
-  btnSubmitAttendance.disabled = true;
-  btnSubmitAttendance.textContent = "Saving...";
+    btnSubmitAttendance.disabled = true;
+    btnSubmitAttendance.textContent = "Saving...";
 
-  const newId = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `att_${Date.now()}`;
-  const record = {
-    id: newId,
-    employeeId: currentUser.email,
-    timestamp: Date.now(),
-    latitude: currentGpsLocation ? currentGpsLocation.lat : 0.0,
-    longitude: currentGpsLocation ? currentGpsLocation.lon : 0.0,
-    photoUri: capturedPhotoBase64 || "",
-    type: clockActionType
-  };
+    const newId = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `att_${Date.now()}`;
+    const record = {
+      id: newId,
+      employeeId: currentUser.email.toLowerCase(),
+      timestamp: Date.now(),
+      latitude: currentGpsLocation ? currentGpsLocation.lat : 0.0,
+      longitude: currentGpsLocation ? currentGpsLocation.lon : 0.0,
+      photoUri: capturedPhotoBase64 || "",
+      type: clockActionType
+    };
 
-  try {
-    const db = getDb();
-    await setDoc(doc(db, "attendances", newId), record);
-    alert(`Success! Marked ${clockActionType}`);
-    closeCameraModal();
-  } catch (e) {
-    console.error("Failed to save attendance:", e);
-    // Retry with fallback default database
     try {
-      const fallbackDb = fallbackToDefaultDb();
-      await setDoc(doc(fallbackDb, "attendances", newId), record);
+      const db = getDb();
+      await setDoc(doc(db, "attendances", newId), record);
       alert(`Success! Marked ${clockActionType}`);
       closeCameraModal();
-    } catch (err2) {
-      alert(`Error saving: ${err2.message}`);
+    } catch (e) {
+      console.error("Failed to save to attend db, retrying with fallback:", e);
+      try {
+        const fallbackDb = fallbackToDefaultDb();
+        await setDoc(doc(fallbackDb, "attendances", newId), record);
+        alert(`Success! Marked ${clockActionType}`);
+        closeCameraModal();
+      } catch (err2) {
+        alert(`Error saving attendance: ${err2.message}`);
+      }
+    } finally {
+      btnSubmitAttendance.disabled = false;
+      btnSubmitAttendance.textContent = "Confirm & Submit";
     }
-  } finally {
-    btnSubmitAttendance.disabled = false;
-    btnSubmitAttendance.textContent = "Confirm & Submit";
-  }
-});
+  });
+}
 
-// --- Attendance History Rendering ---
+// --- Attendance History View ---
 function renderAttendanceHistory() {
-  const container = document.getElementById("history-list-container");
+  const container = document.getElementById("history-container");
   if (!container) return;
 
-  const myRecords = isAdmin ? attendances : attendances.filter(a => a.employeeId?.toLowerCase() === currentUser?.email?.toLowerCase());
-
-  if (myRecords.length === 0) {
-    container.innerHTML = `<div style="text-align: center; color: var(--text-muted); padding: 40px 0;">${t("No attendance records found.")}</div>`;
+  if (attendances.length === 0) {
+    container.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 40px 0;">No attendance records found.</div>`;
     return;
   }
 
-  container.innerHTML = myRecords.map(item => {
-    const dt = new Date(item.timestamp);
-    const dateStr = dt.toLocaleDateString([], { weekday: 'short', month: 'short', day: 'numeric' });
-    const timeStr = dt.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-    const isClockIn = item.type === "IN";
-    const badgeClass = isClockIn ? "badge-in" : "badge-out";
-    const thumbSrc = item.photoUri && item.photoUri.length > 20 ? item.photoUri : "icons/logo.png";
+  container.innerHTML = attendances.map(a => {
+    const d = new Date(a.timestamp);
+    const dateFormatted = d.toLocaleDateString([], { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric' });
+    const timeFormatted = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    const isClockIn = a.type === "IN";
+    const badgeColor = isClockIn ? "#2E7D32" : "#E53935";
+    const photo = a.photoUri ? `<img src="${a.photoUri}" class="history-thumb" alt="Selfie">` : `<div class="history-thumb" style="display:flex;align-items:center;justify-content:center;font-size:1.4rem;">📷</div>`;
 
     return `
-      <div class="history-item">
-        <img src="${thumbSrc}" class="history-thumb" alt="Selfie">
-        <div class="history-info">
-          <div class="history-title">
-            <span class="badge ${badgeClass}" style="margin-right: 6px;">${item.type}</span>
-            ${dateStr} - ${timeStr}
+      <div class="history-card">
+        ${photo}
+        <div style="flex: 1;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span style="font-weight: 700; color: ${badgeColor}; font-size: 1.05rem;">${a.type}</span>
+            <span style="font-size: 0.85rem; color: var(--text-secondary);">${timeFormatted}</span>
           </div>
-          <div class="history-subtitle">
-            ${isAdmin ? `<span>${item.employeeId} • </span>` : ''}
-            <span>GPS: ${Number(item.latitude || 0).toFixed(4)}, ${Number(item.longitude || 0).toFixed(4)}</span>
-          </div>
+          <div style="font-size: 0.9rem; color: var(--text-primary); margin-bottom: 2px;">${dateFormatted}</div>
+          <div style="font-size: 0.78rem; color: var(--text-secondary);">${a.latitude ? `GPS: ${a.latitude.toFixed(4)}, ${a.longitude.toFixed(4)}` : "No GPS data"}</div>
         </div>
       </div>
     `;
   }).join("");
 }
 
-// --- Salary & Monthly Report Calculation ---
-// Matches calculateSalaryForEmployee from MainScreenViewModel.kt
-function calculateSalary(employeeId, year, month) {
-  const settings = employeeSettingsList.find(s => s.employeeId?.toLowerCase() === employeeId.toLowerCase()) || {
-    baseSalary: 0,
-    weekOffs: [1, 7] // Android 1=Sun, 7=Sat
-  };
+// --- Leave Requests View ---
+const leaveForm = document.getElementById("request-leave-form");
+if (leaveForm) {
+  leaveForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    const dateVal = document.getElementById("input-leave-date").value;
+    const reasonVal = document.getElementById("input-leave-reason").value.trim();
+    const btnSubmit = document.getElementById("btn-submit-leave");
 
-  const baseSalary = Number(settings.baseSalary) || 0;
-  const daysInMonth = new Date(year, month + 1, 0).getDate();
+    if (!dateVal || !reasonVal) return;
 
-  // Convert weekOffs (Android 1=Sun..7=Sat to JS 0=Sun..6=Sat)
-  const jsWeekOffs = (settings.weekOffs || [1, 7]).map(w => (w === 1 ? 0 : w - 1));
+    btnSubmit.disabled = true;
+    btnSubmit.textContent = "Submitting...";
+
+    const newId = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `leave_${Date.now()}`;
+    const targetDate = new Date(dateVal).getTime();
+
+    const leaveObj = {
+      id: newId,
+      employeeId: currentUser.email.toLowerCase(),
+      dateTimestamp: targetDate,
+      reason: reasonVal,
+      status: "PENDING",
+      requestedAtTimestamp: Date.now()
+    };
+
+    try {
+      const db = getDb();
+      await setDoc(doc(db, "leaveRequests", newId), leaveObj);
+      alert("Leave request submitted successfully!");
+      leaveForm.reset();
+    } catch (err) {
+      console.error("Leave request error:", err);
+      try {
+        const fallbackDb = fallbackToDefaultDb();
+        await setDoc(doc(fallbackDb, "leaveRequests", newId), leaveObj);
+        alert("Leave request submitted successfully!");
+        leaveForm.reset();
+      } catch (err2) {
+        alert("Failed to submit request: " + err2.message);
+      }
+    } finally {
+      btnSubmit.disabled = false;
+      btnSubmit.textContent = t("Submit Request");
+    }
+  });
+}
+
+function renderLeaveRequests() {
+  const container = document.getElementById("leaves-history-container");
+  if (!container) return;
+
+  if (leaveRequests.length === 0) {
+    container.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 20px 0;">No leave requests.</div>`;
+    return;
+  }
+
+  container.innerHTML = leaveRequests.map(l => {
+    const d = new Date(l.dateTimestamp).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
+    let statusBg = "#FFF3E0";
+    let statusColor = "#E65100";
+    if (l.status === "APPROVED") {
+      statusBg = "#E8F5E9";
+      statusColor = "#2E7D32";
+    } else if (l.status === "REJECTED") {
+      statusBg = "#FFEBEE";
+      statusColor = "#C62828";
+    }
+
+    return `
+      <div style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 12px; padding: 14px; margin-bottom: 10px;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 6px;">
+          <span style="font-weight: 600; font-size: 0.95rem;">${d}</span>
+          <span style="background: ${statusBg}; color: ${statusColor}; font-size: 0.78rem; font-weight: 700; padding: 4px 8px; border-radius: 6px;">${l.status}</span>
+        </div>
+        <div style="color: var(--text-secondary); font-size: 0.88rem;">Reason: "${l.reason}"</div>
+      </div>
+    `;
+  }).join("");
+}
+
+// --- Salary Calculator View ---
+const salaryMonthSelect = document.getElementById("salary-month-select");
+if (salaryMonthSelect) {
+  const now = new Date();
+  salaryMonthSelect.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, "0")}`;
+  salaryMonthSelect.addEventListener("change", renderSalaryReport);
+}
+
+function renderSalaryReport() {
+  const monthInput = document.getElementById("salary-month-select");
+  if (!monthInput || !monthInput.value) return;
+
+  const [yearStr, monthStr] = monthInput.value.split("-");
+  const year = parseInt(yearStr);
+  const monthIndex = parseInt(monthStr) - 1;
+
+  const mySettings = getMySettings();
+  const baseSalary = mySettings.baseSalary || 30000;
+
+  const daysInMonth = new Date(year, monthIndex + 1, 0).getDate();
+  const weekOffs = mySettings.weekOffs || [0, 6];
 
   let totalWorkingDays = 0;
-  for (let d = 1; d <= daysInMonth; d++) {
-    const dayOfWeek = new Date(year, month, d).getDay();
-    if (!jsWeekOffs.includes(dayOfWeek)) {
+  for (let day = 1; day <= daysInMonth; day++) {
+    const d = new Date(year, monthIndex, day);
+    if (!weekOffs.includes(d.getDay())) {
       totalWorkingDays++;
     }
   }
 
-  // Count distinct present days with type == "IN" in this month
-  const presentDaysSet = new Set();
-  attendances.forEach(a => {
-    if (a.employeeId?.toLowerCase() === employeeId.toLowerCase() && a.type === "IN") {
-      const d = new Date(a.timestamp);
-      if (d.getFullYear() === year && d.getMonth() === month) {
-        presentDaysSet.add(d.getDate());
-      }
-    }
+  const userAtts = attendances.filter(a => {
+    const d = new Date(a.timestamp);
+    return d.getFullYear() === year && d.getMonth() === monthIndex;
   });
-  const presentDays = presentDaysSet.size;
 
-  // Approved leave days in this month
-  const approvedLeavesSet = new Set();
-  leaveRequests.forEach(l => {
-    if (l.employeeId?.toLowerCase() === employeeId.toLowerCase() && l.status === "APPROVED") {
-      const d = new Date(l.dateTimestamp);
-      if (d.getFullYear() === year && d.getMonth() === month) {
-        approvedLeavesSet.add(d.getDate());
-      }
-    }
+  const presentDates = new Set();
+  userAtts.forEach(a => {
+    const d = new Date(a.timestamp);
+    presentDates.add(d.getDate());
   });
-  const approvedLeaveDays = approvedLeavesSet.size;
+  const daysPresent = presentDates.size;
 
-  const absentDays = Math.max(0, totalWorkingDays - presentDays - approvedLeaveDays);
+  const approvedLeaves = leaveRequests.filter(l => {
+    if (l.status !== "APPROVED") return false;
+    const d = new Date(l.dateTimestamp);
+    return d.getFullYear() === year && d.getMonth() === monthIndex;
+  }).length;
+
+  const effectivePresent = Math.min(totalWorkingDays, daysPresent + approvedLeaves);
+  const daysAbsent = Math.max(0, totalWorkingDays - effectivePresent);
   const perDaySalary = totalWorkingDays > 0 ? baseSalary / totalWorkingDays : 0;
-  const deduction = perDaySalary * (absentDays + approvedLeaveDays);
+  const deduction = daysAbsent * perDaySalary;
   const netSalary = Math.max(0, baseSalary - deduction);
 
-  return {
-    baseSalary,
-    totalWorkingDays,
-    presentDays,
-    approvedLeaveDays,
-    absentDays,
-    perDaySalary,
-    deduction,
-    netSalary
-  };
+  const dispBase = document.getElementById("disp-base-salary");
+  if (dispBase) dispBase.textContent = `Base Salary: ₹${baseSalary.toLocaleString()}`;
+
+  const dispWorking = document.getElementById("disp-working-days");
+  if (dispWorking) dispWorking.textContent = `Total Working Days (Month): ${totalWorkingDays}`;
+
+  const dispPresent = document.getElementById("disp-present-days");
+  if (dispPresent) dispPresent.textContent = `Days Present: ${daysPresent}`;
+
+  const dispApproved = document.getElementById("disp-approved-leaves");
+  if (dispApproved) dispApproved.textContent = `Approved Leaves: ${approvedLeaves}`;
+
+  const dispAbsent = document.getElementById("disp-absent-days");
+  if (dispAbsent) dispAbsent.textContent = `Days Absent: ${daysAbsent}`;
+
+  const dispPerDay = document.getElementById("disp-per-day");
+  if (dispPerDay) dispPerDay.textContent = `Per Day Salary: ₹${Math.round(perDaySalary).toLocaleString()}`;
+
+  const dispDeduct = document.getElementById("disp-deduction");
+  if (dispDeduct) dispDeduct.textContent = `Total Deduction: ₹${Math.round(deduction).toLocaleString()}`;
+
+  const dispNet = document.getElementById("disp-net-salary");
+  if (dispNet) dispNet.textContent = `Estimated Net Salary: ₹${Math.round(netSalary).toLocaleString()}`;
 }
 
-function renderSalaryReport() {
-  const monthPicker = document.getElementById("salary-month-picker");
-  if (!monthPicker.value) {
-    const now = new Date();
-    monthPicker.value = `${now.getFullYear()}-${String(now.getMonth() + 1).padStart(2, '0')}`;
-  }
+const btnExportCsv = document.getElementById("btn-export-csv-sal");
+if (btnExportCsv) {
+  btnExportCsv.addEventListener("click", () => {
+    if (attendances.length === 0) {
+      alert("No attendance records to export.");
+      return;
+    }
+    const headers = ["ID", "Employee", "Date", "Time", "Type", "Latitude", "Longitude"];
+    const rows = attendances.map(a => {
+      const d = new Date(a.timestamp);
+      return [
+        a.id,
+        a.employeeId,
+        d.toLocaleDateString(),
+        d.toLocaleTimeString(),
+        a.type,
+        a.latitude || 0,
+        a.longitude || 0
+      ];
+    });
 
-  const [yearStr, monthStr] = monthPicker.value.split("-");
-  const year = parseInt(yearStr);
-  const month = parseInt(monthStr) - 1;
-
-  const email = currentUser?.email || "";
-  const stats = calculateSalary(email, year, month);
-
-  document.getElementById("sal-base-val").textContent = `₹${Math.round(stats.baseSalary).toLocaleString()}`;
-  document.getElementById("sal-working-days").textContent = stats.totalWorkingDays;
-  document.getElementById("sal-present-days").textContent = stats.presentDays;
-  document.getElementById("sal-absent-days").textContent = `${stats.absentDays} (Leaves: ${stats.approvedLeaveDays})`;
-  document.getElementById("sal-per-day").textContent = `₹${Math.round(stats.perDaySalary).toLocaleString()}`;
-  document.getElementById("sal-deductions").textContent = `₹${Math.round(stats.deduction).toLocaleString()}`;
-  document.getElementById("sal-net-val").textContent = `₹${Math.round(stats.netSalary).toLocaleString()}`;
+    const csvContent = "data:text/csv;charset=utf-8," + [headers.join(","), ...rows.map(r => r.join(","))].join("\n");
+    const link = document.createElement("a");
+    link.setAttribute("href", encodeURI(csvContent));
+    link.setAttribute("download", `attendance_export_${Date.now()}.csv`);
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+  });
 }
 
-document.getElementById("salary-month-picker").addEventListener("change", renderSalaryReport);
+// --- Chat View ---
+const chatForm = document.getElementById("chat-form");
+if (chatForm) {
+  chatForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    const inputEl = document.getElementById("chat-input-msg");
+    const text = inputEl.value.trim();
+    if (!text) return;
 
-// Export CSV
-document.getElementById("btn-export-csv").addEventListener("click", () => {
-  const monthVal = document.getElementById("salary-month-picker").value;
-  const [yearStr, monthStr] = monthVal.split("-");
-  const year = parseInt(yearStr);
-  const month = parseInt(monthStr) - 1;
+    const newId = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `msg_${Date.now()}`;
+    const receiver = activeChatPartner || (isAdmin ? "all" : "admin");
 
-  const targetEmployees = isAdmin ? getAllEmployeesList() : [currentUser.email];
-  let csv = "Employee,Base Salary,Working Days,Present,Approved Leaves,Absent,Per Day Rate,Deduction,Net Salary\n";
+    const messageObj = {
+      id: newId,
+      senderId: currentUser.email.toLowerCase(),
+      receiverId: receiver,
+      content: text,
+      timestamp: Date.now(),
+      isRead: false
+    };
 
-  targetEmployees.forEach(emp => {
-    const s = calculateSalary(emp, year, month);
-    csv += `"${emp}",${s.baseSalary},${s.totalWorkingDays},${s.presentDays},${s.approvedLeaveDays},${s.absentDays},${Math.round(s.perDaySalary)},${Math.round(s.deduction)},${Math.round(s.netSalary)}\n`;
+    inputEl.value = "";
+    try {
+      const db = getDb();
+      await setDoc(doc(db, "messages", newId), messageObj);
+    } catch (err) {
+      const fallbackDb = fallbackToDefaultDb();
+      await setDoc(doc(fallbackDb, "messages", newId), messageObj);
+    }
+  });
+}
+
+function renderChatMessages() {
+  const container = document.getElementById("chat-thread-container");
+  if (!container || !currentUser) return;
+
+  const currentEmail = currentUser.email.toLowerCase();
+  const relevant = chatMessages.filter(m => {
+    if (isAdmin) {
+      if (activeChatPartner) {
+        return (m.senderId === activeChatPartner && m.receiverId === currentEmail) ||
+               (m.senderId === currentEmail && m.receiverId === activeChatPartner);
+      }
+      return true;
+    }
+    return m.senderId === currentEmail || m.receiverId === currentEmail || m.receiverId === "all";
   });
 
-  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.setAttribute("href", url);
-  link.setAttribute("download", `AttendPro_Salary_${monthVal}.csv`);
-  document.body.appendChild(link);
-  link.click();
-  document.body.removeChild(link);
-});
-
-// --- Leave Requests ---
-document.getElementById("leave-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const dateInput = document.getElementById("leave-date").value;
-  const reason = document.getElementById("leave-reason").value.trim();
-  const btn = document.getElementById("btn-submit-leave");
-
-  if (!dateInput || !reason || !currentUser) return;
-  btn.disabled = true;
-
-  const dateTimestamp = new Date(dateInput).getTime();
-  const id = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `leave_${Date.now()}`;
-
-  const req = {
-    id,
-    employeeId: currentUser.email,
-    dateTimestamp,
-    reason,
-    status: "PENDING",
-    requestedAtTimestamp: Date.now()
-  };
-
-  try {
-    const db = getDb();
-    await setDoc(doc(db, "leaveRequests", id), req);
-    alert("Leave request submitted!");
-    document.getElementById("leave-reason").value = "";
-  } catch (err) {
-    console.error("Leave request error:", err);
-    try {
-      const fallbackDb = fallbackToDefaultDb();
-      await setDoc(doc(fallbackDb, "leaveRequests", id), req);
-      alert("Leave request submitted!");
-      document.getElementById("leave-reason").value = "";
-    } catch (err2) {
-      alert("Error: " + err2.message);
-    }
-  } finally {
-    btn.disabled = false;
-  }
-});
-
-function renderLeaveRequests() {
-  const container = document.getElementById("leave-history-container");
-  if (!container) return;
-
-  const myLeaves = leaveRequests.filter(l => l.employeeId?.toLowerCase() === currentUser?.email?.toLowerCase());
-  if (myLeaves.length === 0) {
-    container.innerHTML = `<div style="color: var(--text-muted); font-size: 0.88rem;">${t("No leave requests found.")}</div>`;
+  if (relevant.length === 0) {
+    container.innerHTML = `<div style="text-align:center; color:var(--text-secondary); padding: 40px 0;">No messages yet.</div>`;
     return;
   }
 
-  container.innerHTML = myLeaves.map(l => {
-    const dt = new Date(l.dateTimestamp).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
-    let badge = `<span class="badge badge-neutral">PENDING</span>`;
-    if (l.status === "APPROVED") badge = `<span class="badge badge-in">APPROVED</span>`;
-    if (l.status === "REJECTED") badge = `<span class="badge badge-out">REJECTED</span>`;
-
-    return `
-      <div class="history-item">
-        <div class="history-info">
-          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
-            <span style="font-weight: 600;">Date: ${dt}</span>
-            ${badge}
-          </div>
-          <div style="font-size: 0.84rem; color: var(--text-muted);">${l.reason}</div>
-        </div>
-      </div>
-    `;
-  }).join("");
-}
-
-// --- Realtime Chat ---
-function renderChatMessages() {
-  const container = document.getElementById("chat-messages-container");
-  if (!container) return;
-
-  const myEmail = (currentUser?.email || "").toLowerCase();
-  const partner = activeChatPartner || (isAdmin ? null : "admin");
-
-  const filtered = chatMessages.filter(m => {
-    const sender = (m.senderId || "").toLowerCase();
-    const receiver = (m.receiverId || "").toLowerCase();
-    if (isAdmin) {
-      if (!partner) return true;
-      return (sender === partner && receiver === myEmail) || (sender === myEmail && receiver === partner);
-    } else {
-      return (sender === myEmail && (receiver === "admin" || receiver.includes("@"))) ||
-             ((sender === "admin" || sender.includes("@")) && receiver === myEmail);
-    }
-  });
-
-  container.innerHTML = filtered.map(m => {
-    const isMine = (m.senderId || "").toLowerCase() === myEmail;
-    const timeStr = new Date(m.timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+  container.innerHTML = relevant.map(m => {
+    const isMine = m.senderId === currentEmail;
+    const time = new Date(m.timestamp).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     return `
       <div class="chat-bubble ${isMine ? 'mine' : 'theirs'}">
-        <div>${m.content || ''}</div>
-        <span class="chat-time">${timeStr}</span>
+        ${!isMine ? `<div style="font-size:0.75rem; font-weight:600; opacity:0.8; margin-bottom:2px;">${m.senderId.split("@")[0]}</div>` : ''}
+        <div>${m.content}</div>
+        <div style="font-size:0.7rem; opacity:0.7; text-align:right; margin-top:4px;">${time}</div>
       </div>
     `;
   }).join("");
@@ -776,147 +1043,118 @@ function renderChatMessages() {
   container.scrollTop = container.scrollHeight;
 }
 
-document.getElementById("chat-send-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const input = document.getElementById("chat-input-text");
-  const content = input.value.trim();
-  if (!content || !currentUser) return;
-
-  const myEmail = currentUser.email;
-  const receiverId = activeChatPartner || (isAdmin ? "all" : "mahimsinhsingoria@gmail.com");
-  const id = (typeof crypto !== "undefined" && crypto.randomUUID) ? crypto.randomUUID() : `msg_${Date.now()}`;
-
-  const msg = {
-    id,
-    senderId: myEmail,
-    receiverId,
-    content,
-    timestamp: Date.now(),
-    isRead: false
-  };
-
-  input.value = "";
-  try {
-    const db = getDb();
-    await setDoc(doc(db, "messages", id), msg);
-  } catch (err) {
-    const fallbackDb = fallbackToDefaultDb();
-    await setDoc(doc(fallbackDb, "messages", id), msg);
-  }
-});
-
-// --- Profile Screen ---
+// --- Profile View ---
 function openProfile() {
   if (!currentUser) return;
-  document.getElementById("profile-email").value = currentUser.email;
-  const mySettings = getMySettings();
-  document.getElementById("profile-name").value = mySettings.displayName || currentUser.email.split("@")[0];
-  if (mySettings.profilePhotoUri) {
-    document.getElementById("profile-avatar-preview").src = mySettings.profilePhotoUri;
+  const emailDisp = document.getElementById("profile-email-disp");
+  const nameDisp = document.getElementById("profile-display-name");
+  const avatarPreview = document.getElementById("avatar-preview");
+
+  if (emailDisp) emailDisp.value = currentUser.email;
+  const settings = getMySettings();
+  if (nameDisp) nameDisp.value = settings.displayName || currentUser.email.split("@")[0];
+  if (avatarPreview && settings.profilePhotoUri) {
+    avatarPreview.src = settings.profilePhotoUri;
   }
   showView(viewProfile);
 }
 
-document.getElementById("profile-photo-input").addEventListener("change", (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const reader = new FileReader();
-  reader.onload = (ev) => {
-    document.getElementById("profile-avatar-preview").src = ev.target.result;
-  };
-  reader.readAsDataURL(file);
-});
+const profileEditForm = document.getElementById("profile-edit-form");
+if (profileEditForm) {
+  profileEditForm.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    if (!currentUser) return;
+    const newName = document.getElementById("profile-display-name").value.trim();
+    const avatarPreview = document.getElementById("avatar-preview");
+    const photoUri = avatarPreview ? avatarPreview.src : "";
 
-document.getElementById("profile-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const displayName = document.getElementById("profile-name").value.trim();
-  const photo = document.getElementById("profile-avatar-preview").src;
-  const email = currentUser.email;
+    try {
+      const db = getDb();
+      await setDoc(doc(db, "settings", currentUser.email.toLowerCase()), {
+        employeeId: currentUser.email.toLowerCase(),
+        displayName: newName,
+        profilePhotoUri: photoUri
+      }, { merge: true });
+      alert("Profile updated successfully!");
+      updateWelcomeText();
+      showView(isAdmin ? viewAdmin : viewMain);
+    } catch (err) {
+      console.error("Profile save error:", err);
+      alert("Failed to update profile: " + err.message);
+    }
+  });
+}
 
-  const data = {
-    employeeId: email,
-    displayName,
-    profilePhotoUri: photo
-  };
+const avatarFileInput = document.getElementById("avatar-file-input");
+if (avatarFileInput) {
+  avatarFileInput.addEventListener("change", (e) => {
+    const file = e.target.files[0];
+    if (!file) return;
+    const reader = new FileReader();
+    reader.onload = (ev) => {
+      const avatarPreview = document.getElementById("avatar-preview");
+      if (avatarPreview) avatarPreview.src = ev.target.result;
+    };
+    reader.readAsDataURL(file);
+  });
+}
 
-  try {
-    const db = getDb();
-    await setDoc(doc(db, "settings", email), data, { merge: true });
-    alert("Profile saved successfully!");
-  } catch (err) {
-    const fallbackDb = fallbackToDefaultDb();
-    await setDoc(doc(fallbackDb, "settings", email), data, { merge: true });
-    alert("Profile saved successfully!");
-  }
-});
+// --- Admin Dashboard View ---
+const tabBtnEmployees = document.getElementById("tab-btn-employees");
+const tabBtnLeaves = document.getElementById("tab-btn-leaves");
+const adminStaffSection = document.getElementById("admin-employees-section");
+const adminLeavesSection = document.getElementById("admin-leaves-section");
 
-// --- Admin Dashboard Operations ---
-function getAllEmployeesList() {
-  const fromSettings = employeeSettingsList.map(s => s.employeeId).filter(Boolean);
-  const fromAttendances = attendances.map(a => a.employeeId).filter(e => e && e !== "admin");
-  return Array.from(new Set([...fromSettings, ...fromAttendances]));
+if (tabBtnEmployees && tabBtnLeaves) {
+  tabBtnEmployees.addEventListener("click", () => {
+    tabBtnEmployees.classList.remove("btn-m3-secondary");
+    tabBtnLeaves.classList.add("btn-m3-secondary");
+    if (adminStaffSection) adminStaffSection.style.display = "block";
+    if (adminLeavesSection) adminLeavesSection.style.display = "none";
+  });
+
+  tabBtnLeaves.addEventListener("click", () => {
+    tabBtnLeaves.classList.remove("btn-m3-secondary");
+    tabBtnEmployees.classList.add("btn-m3-secondary");
+    if (adminStaffSection) adminStaffSection.style.display = "none";
+    if (adminLeavesSection) adminLeavesSection.style.display = "block";
+  });
 }
 
 function renderAdminDashboard() {
   if (!isAdmin) return;
-  const allStaff = getAllEmployeesList();
-  document.getElementById("admin-total-staff").textContent = allStaff.length;
 
-  const todayStart = new Date();
-  todayStart.setHours(0, 0, 0, 0);
-  const presentTodaySet = new Set(
-    attendances.filter(a => a.type === "IN" && (a.timestamp || 0) >= todayStart.getTime())
-      .map(a => a.employeeId?.toLowerCase())
-  );
-  document.getElementById("admin-present-today").textContent = presentTodaySet.size;
+  const staffListEl = document.getElementById("admin-staff-list");
+  const leavesListEl = document.getElementById("admin-leaves-list");
+  const pendingCountEl = document.getElementById("admin-pending-leaves-count");
 
-  // Pending leaves
-  const pendingLeaves = leaveRequests.filter(l => l.status === "PENDING");
-  document.getElementById("admin-pending-count").textContent = pendingLeaves.length;
+  const pending = leaveRequests.filter(l => l.status === "PENDING");
+  if (pendingCountEl) pendingCountEl.textContent = pending.length;
 
-  // Staff list
-  const staffContainer = document.getElementById("admin-employee-list");
-  if (staffContainer) {
-    if (allStaff.length === 0) {
-      staffContainer.innerHTML = `<div style="color: var(--text-muted); padding: 20px 0; text-align: center;">${t("No employees found.")}</div>`;
+  // Render staff
+  if (staffListEl) {
+    if (employeeSettingsList.length === 0) {
+      staffListEl.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 20px;">No registered employees found.</div>`;
     } else {
-      staffContainer.innerHTML = allStaff.map(emp => {
-        const isPresent = presentTodaySet.has(emp.toLowerCase());
-        const setting = employeeSettingsList.find(s => s.employeeId?.toLowerCase() === emp.toLowerCase());
-        const name = setting?.displayName || emp;
-        const salary = setting?.baseSalary ? `₹${setting.baseSalary}` : "No salary set";
-
+      staffListEl.innerHTML = employeeSettingsList.map(emp => {
+        const id = emp.employeeId || emp.id;
+        const name = emp.displayName || id.split("@")[0];
         return `
-          <div class="employee-card" data-emp="${emp}">
+          <div style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; display: flex; justify-content: space-between; align-items: center;">
             <div>
-              <div style="font-weight: 600; display: flex; align-items: center; gap: 8px;">
-                ${name}
-                <span class="badge ${isPresent ? 'badge-in' : 'badge-out'}">${isPresent ? 'PRESENT' : 'ABSENT'}</span>
-              </div>
-              <div style="font-size: 0.8rem; color: var(--text-muted); margin-top: 4px;">
-                ${emp} • ${salary}
-              </div>
+              <div style="font-weight: 600; font-size: 1rem;">${name}</div>
+              <div style="font-size: 0.82rem; color: var(--text-secondary);">${id}</div>
             </div>
-            <div style="display: flex; gap: 6px;">
-              <button class="btn btn-secondary btn-admin-chat" data-emp="${emp}" style="padding: 6px 12px; font-size: 0.8rem;">Chat</button>
-              <button class="btn btn-secondary btn-admin-edit" data-emp="${emp}" style="padding: 6px 12px; font-size: 0.8rem;">Settings</button>
-            </div>
+            <button type="button" class="btn-text btn-admin-chat-staff" data-id="${id}" style="font-size: 0.9rem;">Chat</button>
           </div>
         `;
       }).join("");
 
-      // Bind buttons
-      staffContainer.querySelectorAll(".btn-admin-edit").forEach(btn => {
-        btn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          openAdminSettings(btn.getAttribute("data-emp"));
-        });
-      });
-      staffContainer.querySelectorAll(".btn-admin-chat").forEach(btn => {
-        btn.addEventListener("click", (e) => {
-          e.stopPropagation();
-          activeChatPartner = btn.getAttribute("data-emp");
-          document.getElementById("chat-header-title").textContent = `Chat with ${activeChatPartner}`;
+      staffListEl.querySelectorAll(".btn-admin-chat-staff").forEach(btn => {
+        btn.addEventListener("click", () => {
+          activeChatPartner = btn.getAttribute("data-id");
+          const title = document.getElementById("chat-title");
+          if (title) title.textContent = `Chat with ${activeChatPartner.split("@")[0]}`;
           showView(viewChat);
           renderChatMessages();
         });
@@ -924,207 +1162,48 @@ function renderAdminDashboard() {
     }
   }
 
-  // Pending leaves list
-  const leavesContainer = document.getElementById("admin-leaves-list");
-  if (leavesContainer) {
-    if (pendingLeaves.length === 0) {
-      leavesContainer.innerHTML = `<div style="color: var(--text-muted); padding: 20px 0; text-align: center;">No pending requests.</div>`;
+  // Render pending leaves
+  if (leavesListEl) {
+    if (pending.length === 0) {
+      leavesListEl.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 20px;">No pending leave requests.</div>`;
     } else {
-      leavesContainer.innerHTML = pendingLeaves.map(l => {
+      leavesListEl.innerHTML = pending.map(l => {
         const dt = new Date(l.dateTimestamp).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' });
         return `
-          <div class="employee-card">
-            <div>
-              <div style="font-weight: 600;">${l.employeeId}</div>
-              <div style="font-size: 0.84rem; color: var(--text-muted); margin: 3px 0;">Date: ${dt} • "${l.reason}"</div>
-            </div>
-            <div style="display: flex; gap: 6px;">
-              <button class="btn btn-success btn-approve-leave" data-id="${l.id}" style="padding: 6px 10px; font-size: 0.78rem;">Approve</button>
-              <button class="btn btn-clock-out btn-reject-leave" data-id="${l.id}" style="padding: 6px 10px; font-size: 0.78rem;">Reject</button>
+          <div style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 12px; padding: 14px; margin-bottom: 12px;">
+            <div style="font-weight: 600; margin-bottom: 4px;">${l.employeeId}</div>
+            <div style="font-size: 0.88rem; color: var(--text-secondary); margin-bottom: 8px;">Date: ${dt} • "${l.reason}"</div>
+            <div style="display: flex; gap: 10px;">
+              <button type="button" class="btn-m3 btn-approve-leave" data-id="${l.id}" style="height: 38px; margin-bottom: 0; flex: 1; background: #2E7D32;">Approve</button>
+              <button type="button" class="btn-m3 btn-reject-leave" data-id="${l.id}" style="height: 38px; margin-bottom: 0; flex: 1; background: #E53935;">Reject</button>
             </div>
           </div>
         `;
       }).join("");
 
-      leavesContainer.querySelectorAll(".btn-approve-leave").forEach(btn => {
+      leavesListEl.querySelectorAll(".btn-approve-leave").forEach(btn => {
         btn.addEventListener("click", () => updateLeaveStatus(btn.getAttribute("data-id"), "APPROVED"));
       });
-      leavesContainer.querySelectorAll(".btn-reject-leave").forEach(btn => {
+      leavesListEl.querySelectorAll(".btn-reject-leave").forEach(btn => {
         btn.addEventListener("click", () => updateLeaveStatus(btn.getAttribute("data-id"), "REJECTED"));
       });
     }
   }
 }
 
-async function updateLeaveStatus(id, status) {
+async function updateLeaveStatus(id, newStatus) {
   try {
     const db = getDb();
-    await updateDoc(doc(db, "leaveRequests", id), { status });
+    await updateDoc(doc(db, "leaveRequests", id), { status: newStatus });
   } catch (err) {
     const fallbackDb = fallbackToDefaultDb();
-    await updateDoc(doc(fallbackDb, "leaveRequests", id), { status });
+    await updateDoc(doc(fallbackDb, "leaveRequests", id), { status: newStatus });
   }
 }
 
-// Admin Tab buttons
-document.getElementById("btn-admin-tab-staff").addEventListener("click", () => {
-  document.getElementById("btn-admin-tab-staff").classList.add("active");
-  document.getElementById("btn-admin-tab-leaves").classList.remove("active");
-  document.getElementById("admin-tab-staff-content").style.display = "block";
-  document.getElementById("admin-tab-leaves-content").style.display = "none";
-});
-
-document.getElementById("btn-admin-tab-leaves").addEventListener("click", () => {
-  document.getElementById("btn-admin-tab-leaves").classList.add("active");
-  document.getElementById("btn-admin-tab-staff").classList.remove("active");
-  document.getElementById("admin-tab-staff-content").style.display = "none";
-  document.getElementById("admin-tab-leaves-content").style.display = "block";
-});
-
-// Admin Employee Settings Modal
-const modalAdminSettings = document.getElementById("modal-admin-settings");
-function openAdminSettings(employeeId) {
-  const setting = employeeSettingsList.find(s => s.employeeId?.toLowerCase() === employeeId.toLowerCase()) || {
-    employeeId,
-    displayName: employeeId.split("@")[0],
-    baseSalary: 30000,
-    checkInTimeHours: 9,
-    checkInTimeMinutes: 0,
-    checkOutTimeHours: 17,
-    checkOutTimeMinutes: 0,
-    targetLatitude: currentGpsLocation ? currentGpsLocation.lat : 0,
-    targetLongitude: currentGpsLocation ? currentGpsLocation.lon : 0,
-    targetRadiusMeters: 100
-  };
-
-  document.getElementById("admin-set-id").value = employeeId;
-  document.getElementById("admin-set-name").value = setting.displayName || employeeId;
-  document.getElementById("admin-set-salary").value = setting.baseSalary || 0;
-  document.getElementById("admin-set-in-hour").value = setting.checkInTimeHours ?? 9;
-  document.getElementById("admin-set-in-min").value = setting.checkInTimeMinutes ?? 0;
-  document.getElementById("admin-set-out-hour").value = setting.checkOutTimeHours ?? 17;
-  document.getElementById("admin-set-out-min").value = setting.checkOutTimeMinutes ?? 0;
-  document.getElementById("admin-set-lat").value = setting.targetLatitude || 0;
-  document.getElementById("admin-set-lon").value = setting.targetLongitude || 0;
-  document.getElementById("admin-set-radius").value = setting.targetRadiusMeters || 100;
-
-  modalAdminSettings.classList.add("open");
-}
-
-document.getElementById("btn-close-admin-settings").addEventListener("click", () => {
-  modalAdminSettings.classList.remove("open");
-});
-
-document.getElementById("btn-admin-fill-gps").addEventListener("click", () => {
-  if (currentGpsLocation) {
-    document.getElementById("admin-set-lat").value = currentGpsLocation.lat;
-    document.getElementById("admin-set-lon").value = currentGpsLocation.lon;
-  } else {
-    alert("Location not yet acquired. Please allow GPS access.");
-  }
-});
-
-document.getElementById("admin-settings-form").addEventListener("submit", async (e) => {
-  e.preventDefault();
-  const empId = document.getElementById("admin-set-id").value;
-  const payload = {
-    employeeId: empId,
-    displayName: document.getElementById("admin-set-name").value.trim(),
-    baseSalary: parseFloat(document.getElementById("admin-set-salary").value) || 0,
-    checkInTimeHours: parseInt(document.getElementById("admin-set-in-hour").value) || 9,
-    checkInTimeMinutes: parseInt(document.getElementById("admin-set-in-min").value) || 0,
-    checkOutTimeHours: parseInt(document.getElementById("admin-set-out-hour").value) || 17,
-    checkOutTimeMinutes: parseInt(document.getElementById("admin-set-out-min").value) || 0,
-    targetLatitude: parseFloat(document.getElementById("admin-set-lat").value) || 0,
-    targetLongitude: parseFloat(document.getElementById("admin-set-lon").value) || 0,
-    targetRadiusMeters: parseFloat(document.getElementById("admin-set-radius").value) || 100
-  };
-
-  try {
-    const db = getDb();
-    await setDoc(doc(db, "settings", empId), payload, { merge: true });
-    alert("Settings updated!");
-    modalAdminSettings.classList.remove("open");
-  } catch (err) {
-    const fallbackDb = fallbackToDefaultDb();
-    await setDoc(doc(fallbackDb, "settings", empId), payload, { merge: true });
-    alert("Settings updated!");
-    modalAdminSettings.classList.remove("open");
-  }
-});
-
-// --- Navigation Links ---
-document.getElementById("brand-home-link").addEventListener("click", (e) => {
-  e.preventDefault();
-  if (currentUser) {
-    showView(isAdmin ? viewAdmin : viewDashboard);
-  }
-});
-
-document.getElementById("btn-menu-attendance").addEventListener("click", () => {
-  showView(viewHistory);
-  renderAttendanceHistory();
-});
-document.getElementById("btn-back-history").addEventListener("click", () => showView(isAdmin ? viewAdmin : viewDashboard));
-
-document.getElementById("btn-menu-salary").addEventListener("click", () => {
-  showView(viewSalary);
-  renderSalaryReport();
-});
-document.getElementById("btn-back-salary").addEventListener("click", () => showView(isAdmin ? viewAdmin : viewDashboard));
-
-document.getElementById("btn-menu-leave").addEventListener("click", () => {
-  showView(viewLeave);
-  renderLeaveRequests();
-});
-document.getElementById("btn-back-leave").addEventListener("click", () => showView(isAdmin ? viewAdmin : viewDashboard));
-
-document.getElementById("btn-menu-chat").addEventListener("click", () => {
-  activeChatPartner = null;
-  document.getElementById("chat-header-title").textContent = "Chat with Admin";
-  showView(viewChat);
-  renderChatMessages();
-});
-document.getElementById("btn-header-chat").addEventListener("click", () => {
-  activeChatPartner = null;
-  document.getElementById("chat-header-title").textContent = isAdmin ? "Messages" : "Chat with Admin";
-  showView(viewChat);
-  renderChatMessages();
-});
-document.getElementById("btn-back-chat").addEventListener("click", () => showView(isAdmin ? viewAdmin : viewDashboard));
-
-document.getElementById("btn-header-profile").addEventListener("click", openProfile);
-document.getElementById("btn-back-profile").addEventListener("click", () => showView(isAdmin ? viewAdmin : viewDashboard));
-
-// Language toggle (EN / HI)
-document.getElementById("btn-lang-toggle").addEventListener("click", () => {
-  currentLanguage = currentLanguage === "EN" ? "HI" : "EN";
-  document.getElementById("btn-lang-toggle").textContent = currentLanguage;
-
-  // Translate key labels
-  document.getElementById("lbl-email").textContent = t("Email");
-  document.getElementById("lbl-password").textContent = t("Password");
-  document.getElementById("txt-btn-login").textContent = t("Login");
-  document.getElementById("txt-clock-in").textContent = `Mark ${t("In")}`;
-  document.getElementById("txt-clock-out").textContent = `Mark ${t("Out")}`;
-  document.getElementById("txt-menu-att").textContent = t("My Attendance");
-  document.getElementById("txt-menu-sal").textContent = t("Salary Calculator");
-  document.getElementById("txt-menu-leave").textContent = t("Request Leave");
-  document.getElementById("txt-history-title").textContent = t("My Attendance");
-  document.getElementById("txt-salary-title").textContent = t("Salary Calculator Dashboard");
-
-  renderAttendanceHistory();
-  renderLeaveRequests();
-  renderAdminDashboard();
-});
-
-// PWA Service Worker Registration
+// Service worker registration
 if ('serviceWorker' in navigator) {
   window.addEventListener('load', () => {
     navigator.serviceWorker.register('./sw.js').catch(err => console.log('SW registration error:', err));
   });
 }
-
-// Start live systems
-startClock();
-initGeolocation();

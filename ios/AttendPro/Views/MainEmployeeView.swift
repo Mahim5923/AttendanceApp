@@ -7,14 +7,15 @@ public struct MainEmployeeView: View {
     @State private var capturedImage: UIImage? = nil
     @State private var attendanceType: AttendanceType = .IN
     @State private var activeSheet: SheetType? = nil
-    @State private var currentTimeStr = ""
-    @State private var currentDateStr = ""
+    @State private var currentTimeFormatted: String = ""
 
     enum SheetType: Identifiable {
         case camera
         case history
         case salary
         case leave
+        case profile
+        case chat
         var id: Int { hashValue }
     }
 
@@ -22,131 +23,180 @@ public struct MainEmployeeView: View {
 
     public init() {}
 
+    private var primaryRed: Color {
+        Color(red: 229/255, green: 57/255, blue: 53/255)
+    }
+
+    private var displayName: String {
+        guard let email = firebase.currentUserEmail else { return "Employee" }
+        if let setting = firebase.employeeSettings.first(where: { $0.employeeId.lowercased() == email.lowercased() }),
+           !setting.displayName.isEmpty {
+            return setting.displayName
+        }
+        return email.components(separatedBy: "@").first?.capitalized ?? "Employee"
+    }
+
+    private var logoImage: some View {
+        Group {
+            if let path = Bundle.main.path(forResource: "logo", ofType: "png"),
+               let uiImage = UIImage(contentsOfFile: path) {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFit()
+            } else if let uiImage = UIImage(named: "logo") {
+                Image(uiImage: uiImage)
+                    .resizable()
+                    .scaledToFit()
+            } else {
+                VStack(spacing: 8) {
+                    Image(systemName: "person.crop.circle.badge.checkmark")
+                        .resizable()
+                        .scaledToFit()
+                        .frame(width: 60, height: 60)
+                        .foregroundColor(primaryRed)
+                    Text("AttendPro")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                }
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .frame(height: 180)
+    }
+
     public var body: some View {
         ZStack {
-            Color(red: 10/255, green: 13/255, blue: 20/255)
+            Color.white
                 .ignoresSafeArea()
 
-            VStack(spacing: 16) {
-                // Header
+            VStack(spacing: 0) {
+                // Top Right "Edit Profile" Button (matches Android MainScreen.kt)
                 HStack {
-                    HStack(spacing: 10) {
-                        Image(systemName: "person.crop.circle.badge.checkmark")
-                            .foregroundColor(Color(red: 229/255, green: 57/255, blue: 53/255))
-                            .font(.title2)
-                        Text("AttendPro")
-                            .font(.system(size: 20, weight: .bold, design: .rounded))
-                            .foregroundColor(.white)
-                    }
-
                     Spacer()
-
-                    Button(action: { firebase.logout() }) {
-                        Image(systemName: "rectangle.portrait.and.arrow.right")
-                            .foregroundColor(.gray)
-                            .padding(8)
-                            .background(Color.white.opacity(0.06))
-                            .clipShape(Circle())
+                    Button(action: { activeSheet = .profile }) {
+                        Text("Edit Profile")
+                            .font(.system(size: 15, weight: .medium))
+                            .foregroundColor(primaryRed)
+                            .padding(.horizontal, 16)
+                            .padding(.top, 12)
                     }
                 }
-                .padding(.horizontal)
 
                 ScrollView {
-                    VStack(spacing: 16) {
-                        // Status Card
-                        VStack(alignment: .leading, spacing: 10) {
-                            HStack {
-                                Text(firebase.currentUserEmail?.components(separatedBy: "@").first?.capitalized ?? "Employee")
-                                    .font(.subheadline)
-                                    .foregroundColor(.gray)
-                                Spacer()
-                                Text(todayStatusText)
-                                    .font(.caption)
-                                    .fontWeight(.bold)
-                                    .padding(.horizontal, 10)
-                                    .padding(.vertical, 4)
-                                    .background(isTodayCheckedIn ? Color.green.opacity(0.15) : Color.red.opacity(0.15))
-                                    .foregroundColor(isTodayCheckedIn ? .green : .red)
-                                    .cornerRadius(20)
-                            }
+                    VStack(spacing: 0) {
+                        // Company Banner Logo (matches Android 220dp height)
+                        logoImage
+                            .padding(.horizontal, 24)
+                            .padding(.top, 8)
 
-                            Text(currentTimeStr.isEmpty ? "09:00:00 AM" : currentTimeStr)
-                                .font(.system(size: 38, weight: .bold, design: .rounded))
-                                .foregroundColor(.white)
+                        Spacer().frame(height: 16)
 
-                            Text(currentDateStr.isEmpty ? "Today" : currentDateStr)
-                                .font(.subheadline)
-                                .foregroundColor(.gray)
+                        // Live Date & Time (matches Android SimpleDateFormat "EEEE, dd MMM yyyy\nhh:mm:ss a")
+                        Text(currentTimeFormatted.isEmpty ? "Monday, 19 Oct 2026\n09:00:00 AM" : currentTimeFormatted)
+                            .font(.system(size: 20, weight: .semibold))
+                            .multilineTextAlignment(.center)
+                            .foregroundColor(.black)
+                            .lineSpacing(4)
 
-                            Divider().background(Color.white.opacity(0.1))
+                        Spacer().frame(height: 8)
 
-                            HStack {
-                                Circle()
-                                    .fill(locationManager.isWithinGeofence ? Color.green : Color.orange)
-                                    .frame(width: 10, height: 10)
-                                Text(locationManager.isWithinGeofence ? "Within Office Geofence" : "Outside Geofence (\(Int(locationManager.distanceToOfficeMeters))m)")
-                                    .font(.footnote)
-                                    .foregroundColor(.gray)
-                            }
-                        }
-                        .padding(20)
-                        .background(Color(red: 18/255, green: 23/255, blue: 34/255))
-                        .cornerRadius(20)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: 20)
-                                .stroke(Color.white.opacity(0.08), lineWidth: 1)
-                        )
+                        // Welcome Text (matches Android "Welcome, $displayName")
+                        Text("Welcome, \(displayName)")
+                            .font(.system(size: 16))
+                            .foregroundColor(Color.gray)
 
-                        // Action Buttons: Mark IN & Mark OUT
-                        HStack(spacing: 14) {
+                        Spacer().frame(height: 28)
+
+                        // Side-by-Side [ In ] and [ Out ] Buttons (matches Android Row of 2 buttons)
+                        HStack(spacing: 16) {
                             Button(action: { triggerClock(.IN) }) {
-                                VStack(spacing: 8) {
-                                    Image(systemName: "arrow.down.right.circle.fill")
-                                        .font(.title)
-                                    Text("Mark IN")
-                                        .fontWeight(.bold)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 22)
-                                .background(LinearGradient(colors: [Color.green.opacity(0.2), Color.green.opacity(0.35)], startPoint: .top, endPoint: .bottom))
-                                .foregroundColor(.green)
-                                .cornerRadius(16)
-                                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.green.opacity(0.4), lineWidth: 1))
+                                Text("In")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 56)
+                                    .background(primaryRed)
+                                    .cornerRadius(16)
                             }
 
                             Button(action: { triggerClock(.OUT) }) {
-                                VStack(spacing: 8) {
-                                    Image(systemName: "arrow.up.forward.circle.fill")
-                                        .font(.title)
-                                    Text("Mark OUT")
-                                        .fontWeight(.bold)
-                                }
-                                .frame(maxWidth: .infinity)
-                                .padding(.vertical, 22)
-                                .background(LinearGradient(colors: [Color.red.opacity(0.2), Color.red.opacity(0.35)], startPoint: .top, endPoint: .bottom))
-                                .foregroundColor(Color(red: 255/255, green: 82/255, blue: 82/255))
-                                .cornerRadius(16)
-                                .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.red.opacity(0.4), lineWidth: 1))
+                                Text("Out")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 56)
+                                    .background(primaryRed)
+                                    .cornerRadius(16)
                             }
+                        }
+                        .padding(.horizontal, 32)
+
+                        Spacer().frame(height: 16)
+
+                        // Full-Width Feature Buttons (matches Android 56dp red buttons)
+                        VStack(spacing: 16) {
+                            Button(action: { activeSheet = .history }) {
+                                Text("View My Attendance")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 56)
+                                    .background(primaryRed)
+                                    .cornerRadius(16)
+                            }
+
+                            Button(action: { activeSheet = .leave }) {
+                                Text("Request Leave")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 56)
+                                    .background(primaryRed)
+                                    .cornerRadius(16)
+                            }
+
+                            Button(action: { activeSheet = .salary }) {
+                                Text("Salary Calculator")
+                                    .font(.system(size: 16, weight: .semibold))
+                                    .foregroundColor(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 56)
+                                    .background(primaryRed)
+                                    .cornerRadius(16)
+                            }
+                        }
+                        .padding(.horizontal, 32)
+
+                        Spacer().frame(height: 24)
+
+                        // Logout TextButton (matches Android TextButton)
+                        Button(action: { firebase.logout() }) {
+                            Text("Logout")
+                                .font(.system(size: 16, weight: .medium))
+                                .foregroundColor(primaryRed)
                         }
 
-                        // Feature Grid
-                        LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
-                            MenuGridItem(icon: "calendar", title: "My Attendance", subtitle: "View history") {
-                                activeSheet = .history
-                            }
-                            MenuGridItem(icon: "indianrupeesign.circle", title: "Salary Calc", subtitle: "Monthly estimate") {
-                                activeSheet = .salary
-                            }
-                            MenuGridItem(icon: "doc.text.badge.plus", title: "Request Leave", subtitle: "Apply & status") {
-                                activeSheet = .leave
-                            }
-                            MenuGridItem(icon: "message", title: "Chat Admin", subtitle: "Support message") {
-                                // Chat action
-                            }
-                        }
+                        Spacer().frame(height: 80)
                     }
-                    .padding()
+                }
+            }
+
+            // Floating Action Button for Chat (matches Android Scaffold FloatingActionButton)
+            VStack {
+                Spacer()
+                HStack {
+                    Spacer()
+                    Button(action: { activeSheet = .chat }) {
+                        Image(systemName: "message.fill")
+                            .font(.system(size: 22))
+                            .foregroundColor(.white)
+                            .frame(width: 56, height: 56)
+                            .background(primaryRed)
+                            .cornerRadius(16)
+                            .shadow(color: primaryRed.opacity(0.4), radius: 8, x: 0, y: 4)
+                    }
+                    .padding(.trailing, 24)
+                    .padding(.bottom, 24)
                 }
             }
         }
@@ -168,37 +218,20 @@ public struct MainEmployeeView: View {
                 SalaryReportSheet()
             case .leave:
                 LeaveRequestSheet()
+            case .profile:
+                EditProfileSheet()
+            case .chat:
+                ChatSheet()
             }
         }
     }
 
-    private var todayStatusText: String {
-        guard let email = firebase.currentUserEmail else { return "NOT MARKED" }
-        let calendar = Calendar.current
-        let todayRecords = firebase.attendances.filter {
-            $0.employeeId.lowercased() == email.lowercased() && calendar.isDateInToday($0.date)
-        }
-        if let last = todayRecords.first {
-            let formatter = DateFormatter()
-            formatter.timeStyle = .short
-            return "\(last.type.rawValue) AT \(formatter.string(from: last.date))"
-        }
-        return "NOT MARKED"
-    }
-
-    private var isTodayCheckedIn: Bool {
-        todayStatusText.contains("IN")
-    }
-
     private func updateClock() {
         let now = Date()
-        let tf = DateFormatter()
-        tf.timeStyle = .medium
-        currentTimeStr = tf.string(from: now)
-
-        let df = DateFormatter()
-        df.dateStyle = .full
-        currentDateStr = df.string(from: now)
+        let formatter = DateFormatter()
+        formatter.dateFormat = "EEEE, dd MMM yyyy\nhh:mm:ss a"
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        currentTimeFormatted = formatter.string(from: now)
     }
 
     private func triggerClock(_ type: AttendanceType) {
@@ -223,40 +256,7 @@ public struct MainEmployeeView: View {
     }
 }
 
-struct MenuGridItem: View {
-    let icon: String
-    let title: String
-    let subtitle: String
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            VStack(alignment: .leading, spacing: 8) {
-                Image(systemName: icon)
-                    .font(.title2)
-                    .foregroundColor(Color(red: 229/255, green: 57/255, blue: 53/255))
-                    .frame(width: 40, height: 40)
-                    .background(Color(red: 229/255, green: 57/255, blue: 53/255).opacity(0.15))
-                    .clipShape(RoundedRectangle(cornerRadius: 10))
-
-                Text(title)
-                    .font(.subheadline)
-                    .fontWeight(.semibold)
-                    .foregroundColor(.white)
-
-                Text(subtitle)
-                    .font(.caption2)
-                    .foregroundColor(.gray)
-            }
-            .frame(maxWidth: .infinity, alignment: .leading)
-            .padding()
-            .background(Color(red: 18/255, green: 23/255, blue: 34/255))
-            .cornerRadius(16)
-            .overlay(RoundedRectangle(cornerRadius: 16).stroke(Color.white.opacity(0.08), lineWidth: 1))
-        }
-    }
-}
-
+// --- Attendance History Sheet ---
 struct AttendanceHistorySheet: View {
     @ObservedObject var firebase = FirebaseService.shared
     @Environment(\.presentationMode) var presentationMode
@@ -268,7 +268,7 @@ struct AttendanceHistorySheet: View {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(item.type.rawValue)
                             .font(.headline)
-                            .foregroundColor(item.type == .IN ? .green : .red)
+                            .foregroundColor(item.type == .IN ? Color(red: 46/255, green: 125/255, blue: 50/255) : Color(red: 229/255, green: 57/255, blue: 53/255))
                         Text(item.date, style: .date)
                             .font(.caption)
                             .foregroundColor(.gray)
@@ -276,39 +276,52 @@ struct AttendanceHistorySheet: View {
                     Spacer()
                     Text(item.date, style: .time)
                         .font(.subheadline)
-                        .foregroundColor(.white)
+                        .foregroundColor(.black)
                 }
-                .listRowBackground(Color(red: 18/255, green: 23/255, blue: 34/255))
             }
-            .navigationTitle("Attendance History")
+            .navigationTitle("My Attendance")
             .navigationBarItems(trailing: Button("Done") { presentationMode.wrappedValue.dismiss() })
         }
     }
 }
 
+// --- Salary Calculator Sheet ---
 struct SalaryReportSheet: View {
     @ObservedObject var firebase = FirebaseService.shared
     @Environment(\.presentationMode) var presentationMode
 
     var body: some View {
         NavigationView {
-            VStack(spacing: 20) {
-                Text("Salary Dashboard")
-                    .font(.title2)
-                    .fontWeight(.bold)
-                Text("Estimations based on your attendance records")
-                    .font(.subheadline)
-                    .foregroundColor(.gray)
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text("Salary Calculator Dashboard")
+                        .font(.title2)
+                        .fontWeight(.bold)
+                    
+                    VStack(alignment: .leading, spacing: 10) {
+                        Text("Base Salary: ₹30,000")
+                            .font(.headline)
+                        Text("Working Days: 26")
+                            .foregroundColor(.gray)
+                        Text("Days Present: \(firebase.attendances.count)")
+                            .foregroundColor(.gray)
+                    }
+                    .padding()
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(Color.gray.opacity(0.08))
+                    .cornerRadius(12)
 
-                Spacer()
+                    Spacer()
+                }
+                .padding()
             }
-            .padding()
             .navigationTitle("Salary Calculator")
             .navigationBarItems(trailing: Button("Done") { presentationMode.wrappedValue.dismiss() })
         }
     }
 }
 
+// --- Leave Request Sheet ---
 struct LeaveRequestSheet: View {
     @ObservedObject var firebase = FirebaseService.shared
     @Environment(\.presentationMode) var presentationMode
@@ -320,34 +333,132 @@ struct LeaveRequestSheet: View {
             Form {
                 Section(header: Text("Apply for Leave")) {
                     DatePicker("Leave Date", selection: $date, displayedComponents: .date)
-                    TextField("Reason (e.g. Personal, Health)", text: $reason)
-                    Button("Submit Leave Request") {
-                        guard let email = firebase.currentUserEmail, !reason.isEmpty else { return }
-                        let req = LeaveRequest(
-                            employeeId: email,
-                            dateTimestamp: Int64(date.timeIntervalSince1970 * 1000),
-                            reason: reason
-                        )
-                        firebase.addLeaveRequest(req: req) { _ in
-                            presentationMode.wrappedValue.dismiss()
-                        }
+                    TextField("Reason for leave", text: $reason)
+                    Button(action: submitLeave) {
+                        Text("Submit Request")
+                            .foregroundColor(Color(red: 229/255, green: 57/255, blue: 53/255))
+                            .fontWeight(.semibold)
                     }
                 }
 
-                Section(header: Text("My Past Requests")) {
+                Section(header: Text("My Leave Requests")) {
                     ForEach(firebase.leaveRequests) { req in
                         HStack {
                             Text(req.reason)
                             Spacer()
                             Text(req.status.rawValue)
                                 .font(.caption)
+                                .fontWeight(.bold)
                                 .foregroundColor(req.status == .APPROVED ? .green : (req.status == .REJECTED ? .red : .orange))
                         }
                     }
                 }
             }
-            .navigationTitle("Leave Management")
+            .navigationTitle("Request Leave")
             .navigationBarItems(trailing: Button("Done") { presentationMode.wrappedValue.dismiss() })
+        }
+    }
+
+    private func submitLeave() {
+        guard let email = firebase.currentUserEmail, !reason.isEmpty else { return }
+        let req = LeaveRequest(
+            employeeId: email,
+            dateTimestamp: Int64(date.timeIntervalSince1970 * 1000),
+            reason: reason
+        )
+        firebase.addLeaveRequest(req: req) { _ in
+            presentationMode.wrappedValue.dismiss()
+        }
+    }
+}
+
+// --- Edit Profile Sheet ---
+struct EditProfileSheet: View {
+    @ObservedObject var firebase = FirebaseService.shared
+    @Environment(\.presentationMode) var presentationMode
+    @State private var displayName: String = ""
+
+    var body: some View {
+        NavigationView {
+            Form {
+                Section(header: Text("Profile Information")) {
+                    Text("Email: \(firebase.currentUserEmail ?? "")")
+                        .foregroundColor(.gray)
+                    TextField("Display Name", text: $displayName)
+                    Button("Save Profile") {
+                        presentationMode.wrappedValue.dismiss()
+                    }
+                    .foregroundColor(Color(red: 229/255, green: 57/255, blue: 53/255))
+                    .fontWeight(.semibold)
+                }
+            }
+            .navigationTitle("Edit Profile")
+            .navigationBarItems(trailing: Button("Done") { presentationMode.wrappedValue.dismiss() })
+        }
+    }
+}
+
+// --- Chat Sheet ---
+struct ChatSheet: View {
+    @ObservedObject var firebase = FirebaseService.shared
+    @Environment(\.presentationMode) var presentationMode
+    @State private var messageText: String = ""
+
+    var body: some View {
+        NavigationView {
+            VStack {
+                ScrollView {
+                    LazyVStack(spacing: 10) {
+                        ForEach(firebase.messages) { msg in
+                            HStack {
+                                if msg.senderId.lowercased() == (firebase.currentUserEmail ?? "").lowercased() {
+                                    Spacer()
+                                    Text(msg.content)
+                                        .padding(12)
+                                        .background(Color(red: 229/255, green: 57/255, blue: 53/255))
+                                        .foregroundColor(.white)
+                                        .cornerRadius(14)
+                                } else {
+                                    Text(msg.content)
+                                        .padding(12)
+                                        .background(Color.gray.opacity(0.15))
+                                        .foregroundColor(.black)
+                                        .cornerRadius(14)
+                                    Spacer()
+                                }
+                            }
+                            .padding(.horizontal)
+                        }
+                    }
+                    .padding(.top)
+                }
+
+                HStack {
+                    TextField("Type a message...", text: $messageText)
+                        .textFieldStyle(RoundedBorderTextFieldStyle())
+                    Button(action: sendMessage) {
+                        Image(systemName: "paperplane.fill")
+                            .foregroundColor(Color(red: 229/255, green: 57/255, blue: 53/255))
+                    }
+                }
+                .padding()
+            }
+            .navigationTitle("Chat with Admin")
+            .navigationBarItems(trailing: Button("Done") { presentationMode.wrappedValue.dismiss() })
+        }
+    }
+
+    private func sendMessage() {
+        let trimmed = messageText.trimmingCharacters(in: .whitespaces)
+        guard !trimmed.isEmpty, let email = firebase.currentUserEmail else { return }
+        let chat = ChatMessage(
+            senderId: email,
+            receiverId: firebase.isAdmin ? "all" : "admin",
+            content: trimmed,
+            timestamp: Int64(Date().timeIntervalSince1970 * 1000)
+        )
+        firebase.sendMessage(message: chat) { _ in
+            messageText = ""
         }
     }
 }

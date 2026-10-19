@@ -67,6 +67,28 @@ public class FirebaseService: ObservableObject {
         #endif
     }
 
+    public func signUp(email: String, pass: String, completion: @escaping (Result<Void, Error>) -> Void) {
+        #if canImport(FirebaseAuth)
+        Auth.auth().createUser(withEmail: email, password: pass) { [weak self] result, error in
+            if let error = error {
+                completion(.failure(error))
+                return
+            }
+            guard let self = self, let user = result?.user else { return }
+            let emailLower = (user.email ?? email).lowercased()
+            self.currentUserEmail = emailLower
+            self.isAdmin = emailLower == "admin" || emailLower == "mahimsinhsingoria@gmail.com"
+            self.attachListeners()
+            completion(.success(()))
+        }
+        #else
+        let emailLower = email.lowercased()
+        self.currentUserEmail = emailLower
+        self.isAdmin = emailLower == "admin" || emailLower == "mahimsinhsingoria@gmail.com"
+        completion(.success(()))
+        #endif
+    }
+
     public func logout() {
         #if canImport(FirebaseAuth)
         try? Auth.auth().signOut()

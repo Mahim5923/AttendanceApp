@@ -2,391 +2,279 @@
 <html lang="en">
 <head>
   <meta charset="UTF-8">
-  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
-  <title>AttendPro - Attendance & Salary</title>
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Attendance App</title>
   
-  <!-- iOS Safari & PWA Meta Tags -->
   <meta name="apple-mobile-web-app-capable" content="yes">
-  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
-  <meta name="apple-mobile-web-app-title" content="AttendPro">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="AttendanceApp">
   <link rel="apple-touch-icon" href="icons/logo.png">
   <link rel="icon" type="image/png" href="icons/logo.png">
   <link rel="manifest" href="manifest.json">
-  <meta name="theme-color" content="#0a0d14">
+  <meta name="theme-color" content="#FFFFFF">
   
-  <link rel="stylesheet" href="css/style.css">
+  <link rel="stylesheet" href="css/style.css?v=2.0">
 </head>
 <body>
 
   <div id="app-container">
-    <!-- Header -->
-    <header class="app-header" id="main-header" style="display: none;">
-      <a href="#" class="brand" id="brand-home-link">
-        <img src="icons/logo.png" alt="AttendPro Logo" class="brand-logo">
-        <span class="brand-text">AttendPro</span>
-      </a>
-      <div class="header-actions">
-        <button class="btn-icon" id="btn-lang-toggle" title="Language Toggle">EN</button>
-        <button class="btn-icon" id="btn-header-chat" title="Chat">💬</button>
-        <button class="btn-icon" id="btn-header-profile" title="Profile">👤</button>
-        <button class="btn-icon" id="btn-header-logout" title="Logout">🚪</button>
-      </div>
-    </header>
 
-    <!-- 1. LOGIN VIEW -->
-    <div class="view login-view active" id="view-login">
-      <img src="icons/logo.png" alt="AttendPro" class="login-hero-logo">
-      <h1 class="login-title">AttendPro</h1>
-      <p class="login-subtitle" id="txt-login-sub">Smart Attendance & Workforce Management</p>
+    <!-- ==========================================
+         1. LOGIN SCREEN (100% Matches Android LoginScreen.kt)
+         ========================================== -->
+    <div class="view active" id="view-login">
+      <div style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+        
+        <!-- 220dp Banner Logo -->
+        <img src="icons/logo.png" alt="Company Logo" class="android-banner">
 
-      <div class="login-card">
-        <form id="login-form">
+        <form id="login-form" style="width: 100%;">
           <div class="form-group">
-            <label class="form-label" for="login-email" id="lbl-email">Email</label>
-            <input type="email" id="login-email" class="input-field" placeholder="name@company.com" required autocomplete="username">
+            <label class="field-label" id="lbl-email">Email</label>
+            <input type="email" id="login-email" class="outlined-field" placeholder="Enter your email" required autocomplete="username">
           </div>
+
           <div class="form-group">
-            <label class="form-label" for="login-password" id="lbl-password">Password</label>
-            <input type="password" id="login-password" class="input-field" placeholder="••••••••" required autocomplete="current-password">
+            <label class="field-label" id="lbl-password">Password</label>
+            <input type="password" id="login-password" class="outlined-field" placeholder="Enter your password" required autocomplete="current-password">
           </div>
-          <button type="submit" class="btn btn-primary" id="btn-login-submit" style="margin-top: 10px;">
-            <span id="txt-btn-login">Login</span>
+
+          <div id="login-error-banner" class="error-banner" style="display: none;"></div>
+          <div id="login-success-banner" class="success-banner" style="display: none;"></div>
+
+          <button type="submit" class="btn-m3" id="btn-login-submit">
+            <span id="txt-login-btn">Login</span>
+          </button>
+
+          <button type="button" class="btn-text" id="btn-signup-toggle" style="margin-bottom: 12px; font-size: 0.88rem;">
+            New user? Tap to Register / Sign Up
           </button>
         </form>
-        <div id="login-error" style="color: #FF5252; font-size: 0.85rem; margin-top: 14px; display: none;"></div>
+
+        <div style="margin-top: 20px;">
+          <button type="button" class="btn-text" id="btn-lang-toggle" style="font-size: 1.1rem; font-weight: 500;">
+            हिंदी
+          </button>
+        </div>
+
       </div>
     </div>
 
-    <!-- 2. EMPLOYEE DASHBOARD VIEW -->
-    <div class="view" id="view-dashboard">
-      <div class="status-card">
-        <div class="status-header">
-          <span class="badge badge-neutral" id="dash-greeting">Welcome back</span>
-          <span class="badge badge-out" id="dash-status-badge">NOT MARKED</span>
-        </div>
-        <div class="time-display" id="dash-live-time">--:--:--</div>
-        <div class="date-display" id="dash-live-date">Loading date...</div>
-
-        <div class="geofence-bar">
-          <div class="radar-dot pulsing" id="radar-indicator"></div>
-          <span id="geofence-status-text">Detecting GPS location & geofence...</span>
-        </div>
-      </div>
-
-      <!-- Quick Clock In / Out Buttons -->
-      <div class="action-grid">
-        <button class="btn-clock btn-clock-in" id="btn-clock-in">
-          <span class="clock-icon">🟢</span>
-          <span id="txt-clock-in">Mark IN</span>
-        </button>
-        <button class="btn-clock btn-clock-out" id="btn-clock-out">
-          <span class="clock-icon">🔴</span>
-          <span id="txt-clock-out">Mark OUT</span>
+    <!-- ==========================================
+         2. MAIN SCREEN (100% Matches Android MainScreen.kt)
+         ========================================== -->
+    <div class="view" id="view-main">
+      <!-- Top Right "Edit Profile" Button -->
+      <div class="main-top-bar">
+        <button type="button" class="btn-text" id="btn-edit-profile">
+          Edit Profile
         </button>
       </div>
 
-      <!-- Feature Menu Grid -->
-      <div class="menu-grid">
-        <div class="menu-card" id="btn-menu-attendance">
-          <div class="menu-icon">📅</div>
-          <div class="menu-title" id="txt-menu-att">My Attendance</div>
-          <div class="menu-desc" id="txt-menu-att-sub">History & calendar log</div>
+      <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+        <!-- Banner Logo -->
+        <img src="icons/logo.png" alt="Company Logo" class="android-banner" style="height: 180px; margin-bottom: 16px;">
+
+        <!-- Live Date & Time -->
+        <div class="time-heading" id="main-live-datetime">
+          Loading date & time...
         </div>
 
-        <div class="menu-card" id="btn-menu-salary">
-          <div class="menu-icon">💰</div>
-          <div class="menu-title" id="txt-menu-sal">Salary Calculator</div>
-          <div class="menu-desc" id="txt-menu-sal-sub">Monthly pay & deductions</div>
+        <!-- Welcome Text -->
+        <div class="welcome-text" id="main-welcome-text">
+          Welcome, Employee
         </div>
 
-        <div class="menu-card" id="btn-menu-leave">
-          <div class="menu-icon">📝</div>
-          <div class="menu-title" id="txt-menu-leave">Request Leave</div>
-          <div class="menu-desc" id="txt-menu-leave-sub">Apply & view status</div>
+        <!-- Side-by-Side [ In ] and [ Out ] Buttons -->
+        <div class="in-out-row" style="width: 100%;">
+          <button type="button" class="btn-m3" id="btn-clock-in">In</button>
+          <button type="button" class="btn-m3" id="btn-clock-out">Out</button>
         </div>
 
-        <div class="menu-card" id="btn-menu-chat">
-          <div class="menu-icon">💬</div>
-          <div class="menu-title" id="txt-menu-chat">Chat with Admin</div>
-          <div class="menu-desc" id="txt-menu-chat-sub">Real-time messaging</div>
-        </div>
+        <!-- Action Buttons -->
+        <button type="button" class="btn-m3" id="btn-view-attendance">View My Attendance</button>
+        <button type="button" class="btn-m3" id="btn-request-leave">Request Leave</button>
+        <button type="button" class="btn-m3" id="btn-salary-calc">Salary Calculator</button>
+
+        <button type="button" class="btn-text" id="btn-logout" style="margin-top: 16px;">Logout</button>
       </div>
+
+      <!-- Floating Action Button for Chat (Bottom-Right) -->
+      <button class="fab-chat" id="fab-chat-btn" title="Chat">💬</button>
     </div>
 
-    <!-- 3. ATTENDANCE HISTORY VIEW -->
+    <!-- ==========================================
+         3. VIEW ATTENDANCE SCREEN
+         ========================================== -->
     <div class="view" id="view-history">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-        <h2 style="font-family: var(--font-heading); font-size: 1.4rem;" id="txt-history-title">Attendance History</h2>
-        <button class="btn-icon" id="btn-back-history">✕</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="font-size: 1.3rem;">My Attendance</h2>
+        <button class="btn-text" id="btn-back-from-history">Back</button>
       </div>
-      <div id="history-list-container">
-        <!-- Dynamically rendered -->
+      <div id="history-container" style="overflow-y: auto; flex: 1;">
+        <!-- Records populated by JS -->
       </div>
     </div>
 
-    <!-- 4. SALARY CALCULATOR & MONTHLY REPORT VIEW -->
+    <!-- ==========================================
+         4. REQUEST LEAVE SCREEN
+         ========================================== -->
+    <div class="view" id="view-leave">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="font-size: 1.3rem;">Request Leave</h2>
+        <button class="btn-text" id="btn-back-from-leave">Back</button>
+      </div>
+
+      <form id="request-leave-form" style="margin-bottom: 24px;">
+        <div class="form-group">
+          <label class="field-label">Leave Date</label>
+          <input type="date" id="input-leave-date" class="outlined-field" required>
+        </div>
+        <div class="form-group">
+          <label class="field-label">Reason for leave</label>
+          <input type="text" id="input-leave-reason" class="outlined-field" placeholder="Enter reason" required>
+        </div>
+        <button type="submit" class="btn-m3" id="btn-submit-leave">Submit Request</button>
+      </form>
+
+      <h3 style="font-size: 1.1rem; margin-bottom: 12px;">My Leave Requests</h3>
+      <div id="leaves-history-container" style="overflow-y: auto; flex: 1;"></div>
+    </div>
+
+    <!-- ==========================================
+         5. SALARY CALCULATOR SCREEN
+         ========================================== -->
     <div class="view" id="view-salary">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-        <h2 style="font-family: var(--font-heading); font-size: 1.4rem;" id="txt-salary-title">Salary & Report</h2>
-        <button class="btn-icon" id="btn-back-salary">✕</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="font-size: 1.3rem;">Salary Calculator Dashboard</h2>
+        <button class="btn-text" id="btn-back-from-salary">Back</button>
       </div>
 
       <div class="form-group">
-        <label class="form-label">Select Month</label>
-        <input type="month" id="salary-month-picker" class="input-field">
+        <label class="field-label">Select Month</label>
+        <input type="month" id="salary-month-select" class="outlined-field">
       </div>
 
-      <div class="salary-stat-grid">
-        <div class="salary-stat-card">
-          <div class="salary-stat-label">Base Salary</div>
-          <div class="salary-stat-val" id="sal-base-val">₹0</div>
-        </div>
-        <div class="salary-stat-card">
-          <div class="salary-stat-label">Working Days</div>
-          <div class="salary-stat-val" id="sal-working-days">0</div>
-        </div>
-        <div class="salary-stat-card">
-          <div class="salary-stat-label">Present Days</div>
-          <div class="salary-stat-val" style="color: #10B981;" id="sal-present-days">0</div>
-        </div>
-        <div class="salary-stat-card">
-          <div class="salary-stat-label">Leaves / Absent</div>
-          <div class="salary-stat-val" style="color: #FF5252;" id="sal-absent-days">0</div>
-        </div>
-        <div class="salary-stat-card">
-          <div class="salary-stat-label">Per Day Rate</div>
-          <div class="salary-stat-val" id="sal-per-day">₹0</div>
-        </div>
-        <div class="salary-stat-card">
-          <div class="salary-stat-label">Deductions</div>
-          <div class="salary-stat-val" style="color: #FF5252;" id="sal-deductions">₹0</div>
-        </div>
+      <div style="background: #F8F9FA; border-radius: 16px; padding: 20px; border: 1px solid #E0E0E0; margin-bottom: 16px;">
+        <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 10px;" id="disp-base-salary">Base Salary: ₹0</div>
+        <div style="color: var(--text-secondary); margin-bottom: 6px;" id="disp-working-days">Total Working Days (Month): 0</div>
+        <div style="color: var(--text-secondary); margin-bottom: 6px;" id="disp-present-days">Days Present: 0</div>
+        <div style="color: var(--primary); margin-bottom: 6px;" id="disp-approved-leaves">Approved Leaves: 0</div>
+        <div style="color: var(--error); margin-bottom: 6px;" id="disp-absent-days">Days Absent: 0</div>
       </div>
 
-      <div class="salary-stat-card salary-net-highlight" style="margin-bottom: 20px;">
-        <div class="salary-stat-label">Estimated Net Salary</div>
-        <div class="salary-stat-val" id="sal-net-val">₹0</div>
+      <div style="background: #F8F9FA; border-radius: 16px; padding: 20px; border: 1px solid #E0E0E0; margin-bottom: 20px;">
+        <div style="color: var(--text-secondary); margin-bottom: 6px;" id="disp-per-day">Per Day Salary: ₹0</div>
+        <div style="color: var(--error); margin-bottom: 12px;" id="disp-deduction">Total Deduction: ₹0</div>
+        <div style="font-size: 1.3rem; font-weight: 700; color: #2E7D32;" id="disp-net-salary">Estimated Net Salary: ₹0</div>
       </div>
 
-      <button class="btn btn-secondary" id="btn-export-csv">
-        <span>📊 Export Monthly CSV</span>
-      </button>
+      <button type="button" class="btn-m3 btn-m3-secondary" id="btn-export-csv-sal">Export Monthly Report (.csv)</button>
     </div>
 
-    <!-- 5. REQUEST LEAVE VIEW -->
-    <div class="view" id="view-leave">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-        <h2 style="font-family: var(--font-heading); font-size: 1.4rem;" id="txt-leave-title">Leave Requests</h2>
-        <button class="btn-icon" id="btn-back-leave">✕</button>
-      </div>
-
-      <div class="login-card" style="margin-bottom: 20px;">
-        <h3 style="font-size: 1rem; margin-bottom: 14px;">Apply for Leave</h3>
-        <form id="leave-form">
-          <div class="form-group">
-            <label class="form-label">Leave Date</label>
-            <input type="date" id="leave-date" class="input-field" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Reason</label>
-            <textarea id="leave-reason" class="input-field" rows="2" placeholder="e.g. Medical, Personal appointment" required></textarea>
-          </div>
-          <button type="submit" class="btn btn-primary" id="btn-submit-leave">Submit Request</button>
-        </form>
-      </div>
-
-      <h3 style="font-size: 1rem; margin-bottom: 12px;">My Previous Requests</h3>
-      <div id="leave-history-container">
-        <!-- Dynamically rendered -->
-      </div>
-    </div>
-
-    <!-- 6. CHAT VIEW -->
+    <!-- ==========================================
+         6. CHAT SCREEN
+         ========================================== -->
     <div class="view" id="view-chat">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 12px;">
-        <h2 style="font-family: var(--font-heading); font-size: 1.4rem;" id="chat-header-title">Chat with Admin</h2>
-        <button class="btn-icon" id="btn-back-chat">✕</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h2 style="font-size: 1.3rem;" id="chat-title">Chat with Admin</h2>
+        <button class="btn-text" id="btn-back-from-chat">Back</button>
       </div>
-      <div class="chat-thread" id="chat-messages-container">
-        <!-- Messages rendered here -->
-      </div>
-      <form class="chat-input-row" id="chat-send-form">
-        <input type="text" id="chat-input-text" class="input-field" placeholder="Type a message..." required autocomplete="off">
-        <button type="submit" class="btn btn-primary" style="width: auto; padding: 0 20px;">Send</button>
+      <div class="chat-thread" id="chat-thread-container"></div>
+      <form id="chat-form" style="display: flex; gap: 8px; margin-top: 10px;">
+        <input type="text" id="chat-input-msg" class="outlined-field" placeholder="Type a message..." required style="flex: 1;">
+        <button type="submit" class="btn-m3" style="width: 80px; margin-bottom: 0;">Send</button>
       </form>
     </div>
 
-    <!-- 7. PROFILE VIEW -->
+    <!-- ==========================================
+         7. PROFILE SCREEN
+         ========================================== -->
     <div class="view" id="view-profile">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
-        <h2 style="font-family: var(--font-heading); font-size: 1.4rem;">My Profile</h2>
-        <button class="btn-icon" id="btn-back-profile">✕</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="font-size: 1.3rem;">Edit Profile</h2>
+        <button class="btn-text" id="btn-back-from-profile">Back</button>
       </div>
 
-      <div class="login-card">
-        <div style="text-align: center; margin-bottom: 20px;">
-          <img id="profile-avatar-preview" src="icons/logo.png" alt="Avatar" style="width: 80px; height: 80px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary);">
-          <div style="margin-top: 10px;">
-            <input type="file" id="profile-photo-input" accept="image/*" style="display: none;">
-            <button type="button" class="btn btn-secondary" style="font-size: 0.8rem; padding: 8px 14px;" onclick="document.getElementById('profile-photo-input').click()">Change Photo</button>
-          </div>
-        </div>
-
-        <form id="profile-form">
-          <div class="form-group">
-            <label class="form-label">Employee ID / Email</label>
-            <input type="text" id="profile-email" class="input-field" readonly disabled>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Display Name</label>
-            <input type="text" id="profile-name" class="input-field" placeholder="Full Name" required>
-          </div>
-          <button type="submit" class="btn btn-primary">Save Profile</button>
-        </form>
-      </div>
-    </div>
-
-    <!-- 8. ADMIN DASHBOARD VIEW -->
-    <div class="view" id="view-admin">
-      <div style="display: flex; align-items: center; justify-content: space-between; margin-bottom: 16px;">
+      <div style="text-align: center; margin-bottom: 24px;">
+        <img id="avatar-preview" src="icons/logo.png" alt="Avatar" style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); margin-bottom: 12px;">
         <div>
-          <span class="admin-badge">ADMIN CONSOLE</span>
-          <h2 style="font-family: var(--font-heading); font-size: 1.4rem; margin-top: 4px;">Admin Dashboard</h2>
+          <input type="file" id="avatar-file-input" accept="image/*" style="display: none;">
+          <button type="button" class="btn-text" onclick="document.getElementById('avatar-file-input').click()">Change Photo</button>
         </div>
       </div>
 
-      <div class="salary-stat-grid" style="margin-bottom: 18px;">
-        <div class="salary-stat-card">
-          <div class="salary-stat-label">Total Staff</div>
-          <div class="salary-stat-val" id="admin-total-staff">0</div>
+      <form id="profile-edit-form">
+        <div class="form-group">
+          <label class="field-label">Email</label>
+          <input type="text" id="profile-email-disp" class="outlined-field" readonly disabled>
         </div>
-        <div class="salary-stat-card">
-          <div class="salary-stat-label">Present Today</div>
-          <div class="salary-stat-val" style="color: #10B981;" id="admin-present-today">0</div>
+        <div class="form-group">
+          <label class="field-label">Display Name</label>
+          <input type="text" id="profile-display-name" class="outlined-field" required>
         </div>
+        <button type="submit" class="btn-m3">Save Profile</button>
+      </form>
+    </div>
+
+    <!-- ==========================================
+         8. ADMIN DASHBOARD SCREEN
+         ========================================== -->
+    <div class="view" id="view-admin">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 style="font-size: 1.3rem;">Admin Dashboard</h2>
+        <button class="btn-text" id="btn-admin-logout">Logout</button>
       </div>
 
-      <div style="display: flex; gap: 8px; margin-bottom: 14px;">
-        <button class="btn btn-secondary active" id="btn-admin-tab-staff" style="font-size: 0.85rem; padding: 10px;">Employees</button>
-        <button class="btn btn-secondary" id="btn-admin-tab-leaves" style="font-size: 0.85rem; padding: 10px;">Pending Leaves (<span id="admin-pending-count">0</span>)</button>
+      <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+        <button type="button" class="btn-m3" id="tab-btn-employees" style="flex: 1; height: 44px; margin-bottom: 0;">Employees</button>
+        <button type="button" class="btn-m3 btn-m3-secondary" id="tab-btn-leaves" style="flex: 1; height: 44px; margin-bottom: 0;">Leaves (<span id="admin-pending-leaves-count">0</span>)</button>
       </div>
 
-      <!-- Admin Tab: Staff -->
-      <div id="admin-tab-staff-content">
-        <div id="admin-employee-list">
-          <!-- Dynamically rendered -->
-        </div>
+      <div id="admin-employees-section">
+        <div id="admin-staff-list" style="overflow-y: auto; max-height: calc(100vh - 200px);"></div>
       </div>
 
-      <!-- Admin Tab: Leaves -->
-      <div id="admin-tab-leaves-content" style="display: none;">
-        <div id="admin-leaves-list">
-          <!-- Dynamically rendered -->
-        </div>
+      <div id="admin-leaves-section" style="display: none;">
+        <div id="admin-leaves-list" style="overflow-y: auto; max-height: calc(100vh - 200px);"></div>
       </div>
     </div>
 
-    <!-- CAMERA & GEOFENCE ATTENDANCE MODAL -->
-    <div class="modal-overlay" id="modal-camera">
+    <!-- ==========================================
+         CAMERA & GEOFENCE ATTENDANCE MODAL
+         ========================================== -->
+    <div class="modal-overlay" id="modal-attendance-camera">
       <div class="modal-content">
-        <div class="modal-header">
-          <h3 class="modal-title" id="camera-modal-title">Mark Attendance</h3>
-          <button class="modal-close" id="btn-close-camera">✕</button>
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 id="modal-action-title" style="font-size: 1.2rem;">Mark Attendance</h3>
+          <button type="button" class="btn-text" id="btn-close-camera-modal" style="padding: 4px;">✕</button>
         </div>
 
-        <div class="geofence-bar" style="margin-bottom: 14px;">
-          <div class="radar-dot pulsing" id="modal-radar-dot"></div>
-          <span id="modal-geofence-text">Checking GPS coordinates...</span>
+        <div id="geofence-alert" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 14px;">
+          Checking GPS location...
         </div>
 
-        <div class="camera-box">
-          <video id="camera-video" playsinline autoplay muted></video>
-          <canvas id="camera-canvas" style="display: none;"></canvas>
-          <img id="camera-photo-preview" style="display: none;">
+        <div class="camera-preview-box">
+          <video id="live-camera-video" playsinline autoplay muted></video>
+          <canvas id="live-camera-canvas" style="display: none;"></canvas>
+          <img id="captured-photo-display" style="display: none;">
         </div>
 
-        <div id="camera-fallback" style="margin-bottom: 14px; text-align: center; display: none;">
-          <input type="file" id="camera-file-input" accept="image/*" capture="user" style="display: none;">
-          <button type="button" class="btn btn-secondary" onclick="document.getElementById('camera-file-input').click()">Upload Selfie / Take Photo</button>
+        <div id="file-upload-fallback" style="margin-bottom: 14px; text-align: center; display: none;">
+          <input type="file" id="fallback-file-input" accept="image/*" capture="user" style="display: none;">
+          <button type="button" class="btn-m3 btn-m3-secondary" onclick="document.getElementById('fallback-file-input').click()">Upload Selfie</button>
         </div>
 
         <div style="display: flex; gap: 10px;">
-          <button class="btn btn-secondary" id="btn-retake-photo" style="display: none;">Retake</button>
-          <button class="btn btn-primary" id="btn-capture-photo">📸 Take Photo</button>
-          <button class="btn btn-success" id="btn-submit-attendance" style="display: none;">Confirm & Submit</button>
+          <button type="button" class="btn-m3 btn-m3-secondary" id="btn-camera-retake" style="display: none; margin-bottom: 0; flex: 1;">Retake</button>
+          <button type="button" class="btn-m3" id="btn-camera-capture" style="margin-bottom: 0; flex: 1;">Take Photo</button>
+          <button type="button" class="btn-m3" id="btn-attendance-submit" style="display: none; margin-bottom: 0; flex: 1;">Confirm & Submit</button>
         </div>
-      </div>
-    </div>
-
-    <!-- ADMIN EMPLOYEE SETTINGS MODAL -->
-    <div class="modal-overlay" id="modal-admin-settings">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h3 class="modal-title">Edit Employee Settings</h3>
-          <button class="modal-close" id="btn-close-admin-settings">✕</button>
-        </div>
-
-        <form id="admin-settings-form">
-          <div class="form-group">
-            <label class="form-label">Employee ID</label>
-            <input type="text" id="admin-set-id" class="input-field" readonly disabled>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Display Name</label>
-            <input type="text" id="admin-set-name" class="input-field" required>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Base Monthly Salary (₹)</label>
-            <input type="number" id="admin-set-salary" class="input-field" required min="0">
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="form-group">
-              <label class="form-label">Check-In Hour (24h)</label>
-              <input type="number" id="admin-set-in-hour" class="input-field" min="0" max="23" value="9">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Minute</label>
-              <input type="number" id="admin-set-in-min" class="input-field" min="0" max="59" value="0">
-            </div>
-          </div>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="form-group">
-              <label class="form-label">Check-Out Hour (24h)</label>
-              <input type="number" id="admin-set-out-hour" class="input-field" min="0" max="23" value="17">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Minute</label>
-              <input type="number" id="admin-set-out-min" class="input-field" min="0" max="59" value="0">
-            </div>
-          </div>
-          
-          <h4 style="font-size: 0.9rem; margin: 14px 0 8px;">Geofence Coordinates</h4>
-          <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 10px;">
-            <div class="form-group">
-              <label class="form-label">Latitude</label>
-              <input type="number" step="any" id="admin-set-lat" class="input-field" placeholder="e.g. 28.6139">
-            </div>
-            <div class="form-group">
-              <label class="form-label">Longitude</label>
-              <input type="number" step="any" id="admin-set-lon" class="input-field" placeholder="e.g. 77.2090">
-            </div>
-          </div>
-          <div class="form-group">
-            <label class="form-label">Radius (meters)</label>
-            <input type="number" id="admin-set-radius" class="input-field" value="100" min="10">
-          </div>
-
-          <button type="button" class="btn btn-secondary" id="btn-admin-fill-gps" style="margin-bottom: 12px; font-size: 0.85rem;">
-            📍 Use My Current Location
-          </button>
-
-          <button type="submit" class="btn btn-primary">Save Settings</button>
-        </form>
       </div>
     </div>
 
   </div>
 
-  <script type="module" src="js/app.js"></script>
+  <script type="module" src="js/app.js?v=2.0"></script>
 </body>
 </html>

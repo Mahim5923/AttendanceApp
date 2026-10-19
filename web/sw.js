@@ -1,4 +1,4 @@
-const CACHE_NAME = 'attendpro-v1';
+const CACHE_NAME = 'attendpro-v2';
 const ASSETS = [
   './',
   './index.html',
@@ -27,15 +27,19 @@ self.addEventListener('activate', (e) => {
   );
 });
 
+// Network-first strategy to ensure latest UI updates are always loaded immediately
 self.addEventListener('fetch', (e) => {
   if (e.request.method !== 'GET') return;
-  // Network first for Firestore / APIs, Cache first for assets
-  if (e.request.url.includes('firestore.googleapis.com') || e.request.url.includes('firebase')) {
+  if (e.request.url.includes('firestore.googleapis.com') || e.request.url.includes('firebase') || e.request.url.includes('googleapis.com')) {
     return;
   }
   e.respondWith(
-    caches.match(e.request).then((cached) => {
-      return cached || fetch(e.request);
-    })
+    fetch(e.request).then(response => {
+      if (response && response.status === 200) {
+        const clone = response.clone();
+        caches.open(CACHE_NAME).then(cache => cache.put(e.request, clone));
+      }
+      return response;
+    }).catch(() => caches.match(e.request))
   );
 });

@@ -1,51 +1,33 @@
 /* ==========================================================================
-   AttendPro Modern Design System & iOS Styling
+   AttendPro - Clean Material 3 Theme (100% Matching Android App UI)
    ========================================================================== */
-@import url('https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Outfit:wght@500;600;700;800&display=swap');
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Inter:wght@400;500;600;700&display=swap');
 
 :root {
-  --font-main: 'Inter', -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
-  --font-heading: 'Outfit', -apple-system, BlinkMacSystemFont, sans-serif;
+  --font-main: 'Roboto', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
 
-  /* Color Palette - Vibrant Dark Red / Modern Slate */
-  --bg-primary: #0a0d14;
-  --bg-secondary: #121722;
-  --bg-card: rgba(22, 29, 44, 0.75);
-  --bg-card-hover: rgba(28, 37, 56, 0.85);
-  --bg-glass: rgba(255, 255, 255, 0.04);
-  --border-glass: rgba(255, 255, 255, 0.08);
-  --border-active: rgba(229, 57, 53, 0.4);
+  /* Android Light Color Scheme */
+  --bg-color: #FFFFFF;
+  --surface-color: #FFFFFF;
+  --text-primary: #1C1B1F;
+  --text-secondary: #49454F;
+  --outline-color: #79747E;
+  --outline-variant: #CAC4D0;
 
+  /* Red Theme Palette from Android Color.kt */
   --primary: #E53935;
   --primary-hover: #D32F2F;
-  --primary-light: rgba(229, 57, 53, 0.15);
-  --primary-glow: rgba(229, 57, 53, 0.35);
+  --primary-active: #C62828;
+  --on-primary: #FFFFFF;
 
-  --accent-green: #10B981;
-  --accent-green-bg: rgba(16, 185, 129, 0.15);
-  --accent-blue: #3B82F6;
-  --accent-blue-bg: rgba(59, 130, 246, 0.15);
-  --accent-amber: #F59E0B;
-  --accent-amber-bg: rgba(245, 158, 11, 0.15);
+  --success: #2E7D32;
+  --error: #B3261E;
 
-  --text-main: #FFFFFF;
-  --text-muted: #94A3B8;
-  --text-dim: #64748B;
-
-  --radius-sm: 8px;
-  --radius-md: 14px;
-  --radius-lg: 20px;
-  --radius-full: 9999px;
-
-  --shadow-sm: 0 2px 8px rgba(0, 0, 0, 0.3);
-  --shadow-md: 0 8px 24px rgba(0, 0, 0, 0.4);
-  --shadow-glow: 0 0 25px var(--primary-glow);
-
-  --safe-top: env(safe-area-inset-top, 0px);
-  --safe-bottom: env(safe-area-inset-bottom, 0px);
+  --btn-height: 56px;
+  --btn-radius: 16px;
+  --field-radius: 12px;
 }
 
-/* Reset & Base */
 * {
   box-sizing: border-box;
   margin: 0;
@@ -55,472 +37,293 @@
 
 body {
   font-family: var(--font-main);
-  background-color: var(--bg-primary);
-  color: var(--text-main);
+  background-color: #F8F9FA;
+  color: var(--text-primary);
   min-height: 100vh;
-  min-height: -webkit-fill-available;
   display: flex;
   justify-content: center;
   align-items: stretch;
-  overflow-x: hidden;
-  background-image: 
-    radial-gradient(circle at 10% 20%, rgba(229, 57, 53, 0.08) 0%, transparent 40%),
-    radial-gradient(circle at 90% 80%, rgba(59, 130, 246, 0.05) 0%, transparent 40%);
-  background-attachment: fixed;
 }
 
-/* App Shell (Mobile Frame on Desktop, Fullscreen on iOS) */
+/* App Shell (Mobile frame on PC, full screen on iOS) */
 #app-container {
   width: 100%;
-  max-width: 480px;
+  max-width: 440px;
   min-height: 100vh;
-  background: var(--bg-primary);
+  background-color: var(--bg-color);
   display: flex;
   flex-direction: column;
   position: relative;
-  box-shadow: 0 0 40px rgba(0, 0, 0, 0.6);
-  padding-top: var(--safe-top);
-  padding-bottom: var(--safe-bottom);
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.08);
 }
 
-/* App Header */
-.app-header {
-  position: sticky;
-  top: 0;
-  z-index: 50;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 14px 18px;
-  background: rgba(10, 13, 20, 0.85);
-  backdrop-filter: blur(20px);
-  -webkit-backdrop-filter: blur(20px);
-  border-bottom: 1px solid var(--border-glass);
-}
-
-.brand {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  text-decoration: none;
-}
-
-.brand-logo {
-  width: 34px;
-  height: 34px;
-  border-radius: var(--radius-sm);
-  object-fit: contain;
-}
-
-.brand-text {
-  font-family: var(--font-heading);
-  font-size: 1.25rem;
-  font-weight: 700;
-  background: linear-gradient(135deg, #FFF 30%, #E53935 100%);
-  -webkit-background-clip: text;
-  -webkit-text-fill-color: transparent;
-  letter-spacing: -0.5px;
-}
-
-.header-actions {
-  display: flex;
-  align-items: center;
-  gap: 8px;
-}
-
-.btn-icon {
-  background: var(--bg-glass);
-  border: 1px solid var(--border-glass);
-  color: var(--text-main);
-  width: 36px;
-  height: 36px;
-  border-radius: var(--radius-full);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  font-size: 0.85rem;
-  font-weight: 600;
-}
-
-.btn-icon:hover, .btn-icon:active {
-  background: var(--primary-light);
-  border-color: var(--primary);
-  color: var(--primary);
-}
-
-/* Views & Screens */
+/* Views */
 .view {
   display: none;
   flex: 1;
   flex-direction: column;
-  padding: 18px;
-  animation: fadeIn 0.25s ease-out;
+  padding: 24px;
+  background-color: var(--bg-color);
 }
 
 .view.active {
   display: flex;
 }
 
-@keyframes fadeIn {
-  from { opacity: 0; transform: translateY(6px); }
-  to { opacity: 1; transform: translateY(0); }
-}
-
-/* Login Screen */
-.login-view {
-  display: flex;
-  flex-direction: column;
-  justify-content: center;
-  align-items: center;
-  text-align: center;
-  min-height: calc(100vh - 60px);
-  padding: 30px 24px;
-}
-
-.login-hero-logo {
-  width: 90px;
-  height: 90px;
-  border-radius: 24px;
-  box-shadow: 0 10px 30px var(--primary-glow);
-  margin-bottom: 20px;
-}
-
-.login-title {
-  font-family: var(--font-heading);
-  font-size: 1.8rem;
-  font-weight: 800;
-  margin-bottom: 6px;
-}
-
-.login-subtitle {
-  color: var(--text-muted);
-  font-size: 0.92rem;
-  margin-bottom: 30px;
-}
-
-.login-card {
+/* Top Banner Image (matches Android 220dp banner) */
+.android-banner {
   width: 100%;
-  background: var(--bg-card);
-  backdrop-filter: blur(16px);
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-lg);
-  padding: 24px;
-  box-shadow: var(--shadow-md);
-}
-
-/* Form Controls */
-.form-group {
-  margin-bottom: 16px;
-  text-align: left;
-}
-
-.form-label {
-  display: block;
-  font-size: 0.8rem;
-  font-weight: 600;
-  color: var(--text-muted);
-  margin-bottom: 6px;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
-.input-field {
-  width: 100%;
-  padding: 13px 16px;
-  background: rgba(15, 20, 30, 0.8);
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-md);
-  color: var(--text-main);
-  font-family: var(--font-main);
-  font-size: 0.95rem;
-  transition: all 0.2s ease;
-}
-
-.input-field:focus {
-  outline: none;
-  border-color: var(--primary);
-  box-shadow: 0 0 0 3px var(--primary-light);
-  background: rgba(20, 26, 40, 0.95);
-}
-
-/* Buttons */
-.btn {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  width: 100%;
-  padding: 14px 20px;
-  font-family: var(--font-main);
-  font-size: 0.95rem;
-  font-weight: 600;
-  border-radius: var(--radius-md);
-  border: none;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-decoration: none;
-}
-
-.btn-primary {
-  background: linear-gradient(135deg, #E53935 0%, #C62828 100%);
-  color: #FFF;
-  box-shadow: 0 4px 16px var(--primary-glow);
-}
-
-.btn-primary:hover, .btn-primary:active {
-  transform: translateY(-1px);
-  box-shadow: 0 6px 22px var(--primary-glow);
-  filter: brightness(1.08);
-}
-
-.btn-secondary {
-  background: var(--bg-glass);
-  border: 1px solid var(--border-glass);
-  color: var(--text-main);
-}
-
-.btn-secondary:hover, .btn-secondary:active {
-  background: rgba(255, 255, 255, 0.08);
-}
-
-.btn-success {
-  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-  color: #FFF;
-  box-shadow: 0 4px 16px rgba(16, 185, 129, 0.3);
-}
-
-/* Dashboard Cards */
-.status-card {
-  background: var(--bg-card);
-  backdrop-filter: blur(16px);
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-lg);
-  padding: 20px;
-  margin-bottom: 20px;
-  box-shadow: var(--shadow-sm);
-  position: relative;
-  overflow: hidden;
-}
-
-.status-card::before {
-  content: '';
-  position: absolute;
-  top: 0;
-  left: 0;
-  right: 0;
-  height: 3px;
-  background: linear-gradient(90deg, var(--primary), #FF5252);
-}
-
-.status-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 12px;
-}
-
-.time-display {
-  font-family: var(--font-heading);
-  font-size: 2.2rem;
-  font-weight: 700;
-  letter-spacing: -0.5px;
-}
-
-.date-display {
-  color: var(--text-muted);
-  font-size: 0.9rem;
-  margin-bottom: 14px;
-}
-
-.badge {
-  display: inline-flex;
-  align-items: center;
-  gap: 6px;
-  padding: 5px 12px;
-  border-radius: var(--radius-full);
-  font-size: 0.78rem;
-  font-weight: 600;
-}
-
-.badge-in {
-  background: var(--accent-green-bg);
-  color: var(--accent-green);
-  border: 1px solid rgba(16, 185, 129, 0.3);
-}
-
-.badge-out {
-  background: rgba(229, 57, 53, 0.15);
-  color: #FF5252;
-  border: 1px solid rgba(229, 57, 53, 0.3);
-}
-
-.badge-neutral {
-  background: var(--bg-glass);
-  color: var(--text-muted);
-  border: 1px solid var(--border-glass);
-}
-
-/* Geofence Radar / Status Pill */
-.geofence-bar {
-  display: flex;
-  align-items: center;
-  gap: 10px;
-  padding: 10px 14px;
-  background: rgba(0, 0, 0, 0.3);
-  border-radius: var(--radius-md);
-  font-size: 0.82rem;
-  color: var(--text-muted);
-  margin-top: 10px;
-}
-
-.radar-dot {
-  width: 10px;
-  height: 10px;
-  border-radius: 50%;
-  background: var(--accent-green);
-  position: relative;
-}
-
-.radar-dot.pulsing::after {
-  content: '';
-  position: absolute;
-  top: -4px;
-  left: -4px;
-  right: -4px;
-  bottom: -4px;
-  border-radius: 50%;
-  border: 2px solid var(--accent-green);
-  animation: pulse 1.8s infinite;
-}
-
-.radar-dot.out-of-range {
-  background: var(--primary);
-}
-
-@keyframes pulse {
-  0% { transform: scale(0.6); opacity: 1; }
-  100% { transform: scale(2.2); opacity: 0; }
-}
-
-/* Action Buttons (Mark IN / Mark OUT) */
-.action-grid {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 14px;
+  height: 200px;
+  object-fit: contain;
   margin-bottom: 24px;
 }
 
-.btn-clock {
-  padding: 22px 14px;
-  border-radius: var(--radius-lg);
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  justify-content: center;
-  gap: 8px;
-  font-family: var(--font-heading);
-  font-size: 1.1rem;
-  font-weight: 700;
-  cursor: pointer;
-  border: 1px solid transparent;
-  transition: all 0.25s ease;
-}
-
-.btn-clock-in {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.2) 0%, rgba(5, 150, 105, 0.35) 100%);
-  border-color: rgba(16, 185, 129, 0.4);
-  color: #10B981;
-}
-
-.btn-clock-in:hover, .btn-clock-in:active {
-  background: linear-gradient(135deg, #10B981 0%, #059669 100%);
-  color: #FFF;
-  box-shadow: 0 8px 24px rgba(16, 185, 129, 0.35);
-  transform: translateY(-2px);
-}
-
-.btn-clock-out {
-  background: linear-gradient(135deg, rgba(229, 57, 53, 0.2) 0%, rgba(198, 40, 40, 0.35) 100%);
-  border-color: rgba(229, 57, 53, 0.4);
-  color: #FF5252;
-}
-
-.btn-clock-out:hover, .btn-clock-out:active {
-  background: linear-gradient(135deg, #E53935 0%, #C62828 100%);
-  color: #FFF;
-  box-shadow: 0 8px 24px var(--primary-glow);
-  transform: translateY(-2px);
-}
-
-.clock-icon {
-  font-size: 1.8rem;
-}
-
-/* Feature Navigation Grid */
-.menu-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 12px;
+/* Material 3 Outlined Text Field */
+.form-group {
   margin-bottom: 20px;
+  position: relative;
+  text-align: left;
 }
 
-.menu-card {
-  background: var(--bg-card);
-  backdrop-filter: blur(14px);
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-md);
-  padding: 16px;
-  display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 10px;
-  cursor: pointer;
+.field-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.outlined-field {
+  width: 100%;
+  height: 56px;
+  padding: 0 16px;
+  font-family: var(--font-main);
+  font-size: 1rem;
+  color: var(--text-primary);
+  background-color: transparent;
+  border: 1.5px solid var(--outline-color);
+  border-radius: var(--field-radius);
+  outline: none;
   transition: all 0.2s ease;
-  text-decoration: none;
-  color: var(--text-main);
 }
 
-.menu-card:hover, .menu-card:active {
-  background: var(--bg-card-hover);
-  border-color: var(--border-active);
-  transform: translateY(-2px);
+.outlined-field:focus {
+  border-color: var(--primary);
+  border-width: 2px;
 }
 
-.menu-icon {
-  width: 40px;
-  height: 40px;
-  border-radius: var(--radius-sm);
+/* Android Buttons (56dp height, rounded) */
+.btn-m3 {
+  width: 100%;
+  height: var(--btn-height);
+  background-color: var(--primary);
+  color: var(--on-primary);
+  font-family: var(--font-main);
+  font-size: 1rem;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--btn-radius);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 2px 6px rgba(229, 57, 53, 0.25);
+  margin-bottom: 16px;
+}
+
+.btn-m3:hover, .btn-m3:active {
+  background-color: var(--primary-hover);
+}
+
+.btn-m3:disabled {
+  background-color: #E0E0E0;
+  color: #9E9E9E;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Secondary Button */
+.btn-m3-secondary {
+  background-color: #F1F3F5;
+  color: var(--text-primary);
+  box-shadow: none;
+}
+
+.btn-m3-secondary:hover {
+  background-color: #E9ECEF;
+}
+
+/* Text Button (like Android TextButton) */
+.btn-text {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-family: var(--font-main);
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 10px 16px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.btn-text:hover {
+  background-color: rgba(229, 57, 53, 0.08);
+}
+
+/* Error message banner */
+.error-banner {
+  background-color: #FFEBEE;
+  color: var(--error);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  margin-bottom: 16px;
+  border-left: 4px solid var(--error);
+  text-align: left;
+}
+
+/* Success banner */
+.success-banner {
+  background-color: #E8F5E9;
+  color: var(--success);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  margin-bottom: 16px;
+  border-left: 4px solid var(--success);
+  text-align: left;
+}
+
+/* Android Main Screen Top Navigation */
+.main-top-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+/* Centered Clock & Date in Main Screen */
+.time-heading {
+  font-size: 1.5rem;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.35;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.welcome-text {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+/* Side-by-Side IN & OUT Buttons (matches Android Row of 2 buttons) */
+.in-out-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.in-out-row .btn-m3 {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* Floating Action Button (FAB) for Chat (Bottom-Right) */
+.fab-chat {
+  position: fixed;
+  bottom: 28px;
+  right: calc(50% - 220px + 24px);
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background-color: var(--primary);
+  color: #FFF;
+  border: none;
+  box-shadow: 0 4px 12px rgba(229, 57, 53, 0.4);
   display: flex;
   align-items: center;
   justify-content: center;
-  font-size: 1.25rem;
-  background: var(--primary-light);
-  color: var(--primary);
+  font-size: 1.6rem;
+  cursor: pointer;
+  z-index: 40;
+  transition: transform 0.2s ease;
 }
 
-.menu-title {
-  font-weight: 600;
-  font-size: 0.92rem;
+@media (max-width: 440px) {
+  .fab-chat {
+    right: 20px;
+  }
 }
 
-.menu-desc {
-  font-size: 0.78rem;
-  color: var(--text-muted);
+.fab-chat:hover, .fab-chat:active {
+  transform: scale(1.05);
+  background-color: var(--primary-hover);
 }
 
-/* Modal Windows (Camera, Leave, Settings) */
+/* Attendance History List */
+.history-card {
+  background: #FFFFFF;
+  border: 1px solid #E0E0E0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.history-thumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #EEEEEE;
+}
+
+/* Chat View */
+.chat-thread {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+.chat-bubble {
+  max-width: 78%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.chat-bubble.mine {
+  align-self: flex-end;
+  background-color: var(--primary);
+  color: #FFF;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-bubble.theirs {
+  align-self: flex-start;
+  background-color: #F1F3F5;
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+}
+
+/* Modal Windows */
 .modal-overlay {
   display: none;
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(0, 0, 0, 0.85);
-  backdrop-filter: blur(12px);
-  -webkit-backdrop-filter: blur(12px);
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.6);
   z-index: 100;
   align-items: center;
   justify-content: center;
@@ -533,215 +336,29 @@ body {
 
 .modal-content {
   width: 100%;
-  max-width: 440px;
-  background: var(--bg-secondary);
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-lg);
-  padding: 22px;
+  max-width: 400px;
+  background: #FFF;
+  border-radius: 20px;
+  padding: 24px;
   max-height: 90vh;
   overflow-y: auto;
-  box-shadow: 0 15px 40px rgba(0, 0, 0, 0.7);
-  animation: modalPop 0.25s ease-out;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
 }
 
-@keyframes modalPop {
-  from { transform: scale(0.95); opacity: 0; }
-  to { transform: scale(1); opacity: 1; }
-}
-
-.modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 16px;
-}
-
-.modal-title {
-  font-family: var(--font-heading);
-  font-size: 1.25rem;
-  font-weight: 700;
-}
-
-.modal-close {
-  background: transparent;
-  border: none;
-  color: var(--text-muted);
-  font-size: 1.4rem;
-  cursor: pointer;
-  padding: 4px;
-}
-
-/* Camera Preview */
-.camera-box {
+.camera-preview-box {
   width: 100%;
-  aspect-ratio: 4/3;
+  height: 260px;
   background: #000;
-  border-radius: var(--radius-md);
+  border-radius: 12px;
   overflow: hidden;
-  position: relative;
   margin-bottom: 16px;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
-#camera-video, #camera-canvas, #camera-photo-preview {
+.camera-preview-box video, .camera-preview-box img {
   width: 100%;
   height: 100%;
   object-fit: cover;
-}
-
-/* Attendance History List */
-.history-item {
-  display: flex;
-  align-items: center;
-  gap: 14px;
-  padding: 14px;
-  background: var(--bg-card);
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-md);
-  margin-bottom: 10px;
-}
-
-.history-thumb {
-  width: 48px;
-  height: 48px;
-  border-radius: var(--radius-sm);
-  object-fit: cover;
-  background: #1e2430;
-}
-
-.history-info {
-  flex: 1;
-}
-
-.history-title {
-  font-weight: 600;
-  font-size: 0.95rem;
-}
-
-.history-subtitle {
-  font-size: 0.8rem;
-  color: var(--text-muted);
-}
-
-/* Chat View */
-.chat-thread {
-  flex: 1;
-  overflow-y: auto;
-  display: flex;
-  flex-direction: column;
-  gap: 12px;
-  padding: 10px 0;
-  margin-bottom: 14px;
-}
-
-.chat-bubble {
-  max-width: 80%;
-  padding: 12px 16px;
-  border-radius: 18px;
-  font-size: 0.9rem;
-  line-height: 1.4;
-  word-break: break-word;
-}
-
-.chat-bubble.mine {
-  align-self: flex-end;
-  background: linear-gradient(135deg, #E53935 0%, #D32F2F 100%);
-  color: #FFF;
-  border-bottom-right-radius: 4px;
-}
-
-.chat-bubble.theirs {
-  align-self: flex-start;
-  background: rgba(255, 255, 255, 0.08);
-  color: var(--text-main);
-  border-bottom-left-radius: 4px;
-}
-
-.chat-time {
-  font-size: 0.7rem;
-  opacity: 0.7;
-  margin-top: 4px;
-  display: block;
-  text-align: right;
-}
-
-.chat-input-row {
-  display: flex;
-  gap: 8px;
-}
-
-/* Salary Stats Cards */
-.salary-stat-grid {
-  display: grid;
-  grid-template-columns: repeat(2, 1fr);
-  gap: 10px;
-  margin: 14px 0;
-}
-
-.salary-stat-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-md);
-  padding: 14px;
-}
-
-.salary-stat-label {
-  font-size: 0.78rem;
-  color: var(--text-muted);
-  text-transform: uppercase;
-}
-
-.salary-stat-val {
-  font-family: var(--font-heading);
-  font-size: 1.25rem;
-  font-weight: 700;
-  margin-top: 4px;
-}
-
-.salary-net-highlight {
-  background: linear-gradient(135deg, rgba(16, 185, 129, 0.15) 0%, rgba(5, 150, 105, 0.25) 100%);
-  border-color: rgba(16, 185, 129, 0.4);
-}
-
-.salary-net-highlight .salary-stat-val {
-  color: #10B981;
-  font-size: 1.6rem;
-}
-
-/* Admin Dashboard Specifics */
-.admin-badge {
-  background: linear-gradient(135deg, #E53935, #FF5252);
-  color: #FFF;
-  font-size: 0.7rem;
-  padding: 2px 8px;
-  border-radius: var(--radius-full);
-  font-weight: 700;
-}
-
-.employee-card {
-  background: var(--bg-card);
-  border: 1px solid var(--border-glass);
-  border-radius: var(--radius-md);
-  padding: 14px;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  margin-bottom: 10px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.employee-card:hover {
-  border-color: var(--border-active);
-  background: var(--bg-card-hover);
-}
-
-/* Responsive adjust */
-@media (max-width: 480px) {
-  #app-container {
-    max-width: 100%;
-    box-shadow: none;
-  }
 }
