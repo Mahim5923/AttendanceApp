@@ -427,6 +427,9 @@ async function performLogin() {
   }
 }
 
+// Expose on window for direct access
+window.triggerLogin = performLogin;
+
 // Bind both button click and form submit listeners
 const btnLoginSubmit = document.getElementById("btn-login-submit");
 if (btnLoginSubmit) {
@@ -1222,7 +1225,6 @@ function exportMonthlyCsv() {
       return d.getFullYear() === year && d.getMonth() === month;
     }).length;
 
-    const presentDays = presentDates.size;
     const effectivePresent = Math.min(workingDays, presentDays + approvedLeaves);
     const absentDays = Math.max(0, workingDays - effectivePresent);
     const perDay = workingDays > 0 ? base / workingDays : 0;
