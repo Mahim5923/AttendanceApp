@@ -1,0 +1,29 @@
+{
+  "project_info": {
+    "project_number": "813393965121",
+    "project_id": "attend-pro-ced53",
+    "storage_bucket": "attend-pro-ced53.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:813393965121:android:fb2946db3070d55f4d16c0",
+        "android_client_info": {
+          "package_name": "com.attendance.attendpro"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyDon5gxz0H20FoIpR1TeY8SyJ6THgTqZrQ"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}

@@ -1,0 +1,84 @@
+name: Build iOS & Android Apps
+
+on:
+  push:
+    branches: [ "main", "master" ]
+  pull_request:
+    branches: [ "main", "master" ]
+  workflow_dispatch: # Allows manual trigger from GitHub web UI
+
+jobs:
+  # ==========================================
+  # JOB 1: Build Native iOS App (.ipa) on Mac
+  # ==========================================
+  build-ios:
+    name: Build iOS App (.ipa)
+    runs-on: macos-14
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Select Xcode Version
+        run: sudo xcode-select -s /Applications/Xcode_15.4.app || sudo xcode-select -s /Applications/Xcode.app
+
+      - name: Verify Xcode & CocoaPods
+        run: |
+          xcodebuild -version
+          pod --version
+
+      - name: Build Xcode Project
+        run: |
+          xcodebuild clean build \
+            -project ios/AttendPro.xcodeproj \
+            -scheme AttendPro \
+            -configuration Release \
+            -sdk iphoneos \
+            -destination "generic/platform=iOS" \
+            CODE_SIGNING_ALLOWED=NO \
+            CODE_SIGNING_REQUIRED=NO \
+            CODE_SIGN_IDENTITY="" \
+            SYMROOT=build
+
+      - name: Package .ipa File
+        run: |
+          mkdir -p Payload
+          cp -r build/Release-iphoneos/AttendPro.app Payload/
+          zip -r AttendPro.ipa Payload
+          ls -lh AttendPro.ipa
+
+      - name: Upload iOS .ipa Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AttendPro-iOS-IPA
+          path: AttendPro.ipa
+          retention-days: 14
+
+  # ==========================================
+  # JOB 2: Build Android APK
+  # ==========================================
+  build-android:
+    name: Build Android APK
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout Code
+        uses: actions/checkout@v4
+
+      - name: Set up JDK 17
+        uses: actions/setup-java@v4
+        with:
+          java-version: '17'
+          distribution: 'temurin'
+          cache: gradle
+
+      - name: Grant Execute Permission to Gradlew
+        run: chmod +x gradlew
+
+      - name: Build Debug APK
+        run: ./gradlew assembleDebug
+
+      - name: Upload Android APK Artifact
+        uses: actions/upload-artifact@v4
+        with:
+          name: AttendPro-Android-APK
+          path: app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 14
