@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#FFFFFF">
   
-  <link rel="stylesheet" href="css/style.css?v=2.1">
+  <link rel="stylesheet" href="css/style.css?v=2.2">
 </head>
 <body>
 
@@ -131,9 +131,7 @@
       </div>
 
       <h3 style="font-size: 1rem; margin-bottom: 8px;" id="history-selected-date-title">Selected Date Records</h3>
-      <div id="history-container" style="overflow-y: auto; flex: 1;">
-        <!-- Records populated by JS -->
-      </div>
+      <div id="history-container" style="overflow-y: auto; flex: 1;"></div>
     </div>
 
     <!-- ==========================================
@@ -238,105 +236,142 @@
     </div>
 
     <!-- ==========================================
-         8. ADMIN DASHBOARD SCREEN
+         8. ADMIN DASHBOARD SCREEN (100% Matches Android AdminDashboardScreen.kt)
          ========================================== -->
     <div class="view" id="view-admin">
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h2 style="font-size: 1.3rem;">Admin Dashboard</h2>
-        <button class="btn-text" id="btn-admin-logout">Logout</button>
+        <h1 style="font-size: 1.4rem; font-weight: 700;">Admin Dashboard</h1>
+        <button class="btn-text" id="btn-admin-logout" style="font-size: 0.95rem;">Logout</button>
       </div>
 
-      <div style="display: flex; gap: 10px; margin-bottom: 16px;">
-        <button type="button" class="btn-m3" id="tab-btn-employees" style="flex: 1; height: 44px; margin-bottom: 0;">Employees</button>
-        <button type="button" class="btn-m3 btn-m3-secondary" id="tab-btn-leaves" style="flex: 1; height: 44px; margin-bottom: 0;">Leaves (<span id="admin-pending-leaves-count">0</span>)</button>
+      <!-- Manage Leave Requests (56dp Red Button) -->
+      <button type="button" class="btn-m3" id="btn-admin-to-leaves" style="margin-bottom: 16px;">
+        Manage Leave Requests
+      </button>
+
+      <!-- View Monthly Report (56dp Red Button) -->
+      <button type="button" class="btn-m3" id="btn-admin-to-report" style="margin-bottom: 24px;">
+        View Monthly Report
+      </button>
+
+      <!-- Employees Header -->
+      <h2 style="font-size: 1.15rem; font-weight: 600; margin-bottom: 12px;">Employees</h2>
+
+      <!-- List of Employee Cards (Matches Android Card with 50dp avatar, name, and email) -->
+      <div id="admin-staff-list" style="overflow-y: auto; flex: 1;"></div>
+
+      <!-- Floating Action Button for Chat (Bottom-Right) -->
+      <button class="fab-chat" id="fab-admin-chat-btn" title="Chat">💬</button>
+    </div>
+
+    <!-- ==========================================
+         9. ADMIN MANAGE LEAVES SCREEN (100% Matches Android ManageLeavesScreen.kt)
+         ========================================== -->
+    <div class="view" id="view-admin-leaves">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h1 style="font-size: 1.3rem; font-weight: 700;">Manage Leave Requests</h1>
+        <button class="btn-text" id="btn-back-from-admin-leaves">Back</button>
+      </div>
+
+      <div id="admin-leaves-list" style="overflow-y: auto; flex: 1;"></div>
+    </div>
+
+    <!-- ==========================================
+         10. ADMIN MONTHLY REPORT SCREEN (100% Matches Android MonthlyReportScreen.kt)
+         ========================================== -->
+    <div class="view" id="view-admin-monthly-report">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h1 style="font-size: 1.3rem; font-weight: 700;">Monthly Report</h1>
+        <button class="btn-text" id="btn-back-from-admin-report">Back</button>
+      </div>
+
+      <!-- Month Switcher with < and > (Matches Android) -->
+      <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #F8F9FA; border-radius: 12px; margin-bottom: 16px;">
+        <button class="btn-text" id="btn-report-prev-month" style="font-size: 1.2rem; padding: 4px 10px;">◀</button>
+        <div id="disp-report-month-year" style="font-size: 1.05rem; font-weight: 700;">Month Year</div>
+        <button class="btn-text" id="btn-report-next-month" style="font-size: 1.2rem; padding: 4px 10px;">▶</button>
       </div>
 
       <div style="margin-bottom: 16px;">
-        <button type="button" class="btn-m3 btn-m3-secondary" id="btn-admin-export-csv" style="height: 44px;">
+        <button type="button" class="btn-text" id="btn-admin-export-csv" style="width: 100%; border: 1.5px solid var(--primary); border-radius: 12px; height: 44px; font-weight: 600;">
           Export Monthly Report (.csv)
         </button>
       </div>
 
-      <div id="admin-employees-section">
-        <div id="admin-staff-list" style="overflow-y: auto; max-height: calc(100vh - 240px);"></div>
-      </div>
-
-      <div id="admin-leaves-section" style="display: none;">
-        <div id="admin-leaves-list" style="overflow-y: auto; max-height: calc(100vh - 240px);"></div>
-      </div>
+      <div id="admin-monthly-report-cards" style="overflow-y: auto; flex: 1;"></div>
     </div>
 
     <!-- ==========================================
-         ADMIN EMPLOYEE SETTINGS MODAL
+         11. ADMIN EMPLOYEE DETAIL / SETTINGS (100% Matches Android AdminEmployeeSettingsScreen.kt)
          ========================================== -->
-    <div class="modal-overlay" id="modal-admin-settings">
-      <div class="modal-content">
-        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-          <h3 style="font-size: 1.2rem;">Employee Settings</h3>
-          <button type="button" class="btn-text" id="btn-close-settings-modal" style="padding: 4px;">✕</button>
+    <div class="view" id="view-admin-employee-detail">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h1 style="font-size: 1.25rem; font-weight: 700;" id="admin-detail-title">Settings: Employee</h1>
+        <button class="btn-text" id="btn-back-from-admin-detail">Back</button>
+      </div>
+
+      <form id="form-admin-employee-detail" style="overflow-y: auto; flex: 1; padding-bottom: 24px;">
+        <input type="hidden" id="admin-detail-emp-id">
+
+        <div class="form-group">
+          <label class="field-label">Display Name</label>
+          <input type="text" id="admin-detail-display-name" class="outlined-field" required>
         </div>
 
-        <form id="form-admin-settings">
-          <input type="hidden" id="set-emp-id">
+        <div class="form-group">
+          <label class="field-label">Base Salary (₹)</label>
+          <input type="number" id="admin-detail-base-salary" class="outlined-field" required>
+        </div>
 
-          <div class="form-group">
-            <label class="field-label">Display Name</label>
-            <input type="text" id="set-emp-name" class="outlined-field" required>
+        <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+          <div style="flex: 1;">
+            <label class="field-label">Check-In Hour (24h)</label>
+            <input type="number" id="admin-detail-in-hour" class="outlined-field" min="0" max="23" required>
           </div>
-
-          <div class="form-group">
-            <label class="field-label">Base Salary (₹)</label>
-            <input type="number" id="set-emp-salary" class="outlined-field" required>
+          <div style="flex: 1;">
+            <label class="field-label">Min</label>
+            <input type="number" id="admin-detail-in-min" class="outlined-field" min="0" max="59" required>
           </div>
+        </div>
 
-          <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-            <div style="flex: 1;">
-              <label class="field-label">Check-In Hour (0-23)</label>
-              <input type="number" id="set-in-hour" class="outlined-field" min="0" max="23" required>
-            </div>
-            <div style="flex: 1;">
-              <label class="field-label">Minute (0-59)</label>
-              <input type="number" id="set-in-min" class="outlined-field" min="0" max="59" required>
-            </div>
+        <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+          <div style="flex: 1;">
+            <label class="field-label">Check-Out Hour (24h)</label>
+            <input type="number" id="admin-detail-out-hour" class="outlined-field" min="0" max="23" required>
           </div>
-
-          <div style="display: flex; gap: 8px; margin-bottom: 16px;">
-            <div style="flex: 1;">
-              <label class="field-label">Check-Out Hour (0-23)</label>
-              <input type="number" id="set-out-hour" class="outlined-field" min="0" max="23" required>
-            </div>
-            <div style="flex: 1;">
-              <label class="field-label">Minute (0-59)</label>
-              <input type="number" id="set-out-min" class="outlined-field" min="0" max="59" required>
-            </div>
+          <div style="flex: 1;">
+            <label class="field-label">Min</label>
+            <input type="number" id="admin-detail-out-min" class="outlined-field" min="0" max="59" required>
           </div>
+        </div>
 
-          <div class="form-group">
-            <label class="field-label">Week Offs:</label>
-            <div style="display: grid; grid-template-columns: repeat(2, 1fr); gap: 8px; font-size: 0.9rem;">
-              <label><input type="checkbox" id="chk-off-1"> Sunday</label>
-              <label><input type="checkbox" id="chk-off-2"> Monday</label>
-              <label><input type="checkbox" id="chk-off-3"> Tuesday</label>
-              <label><input type="checkbox" id="chk-off-4"> Wednesday</label>
-              <label><input type="checkbox" id="chk-off-5"> Thursday</label>
-              <label><input type="checkbox" id="chk-off-6"> Friday</label>
-              <label><input type="checkbox" id="chk-off-7"> Saturday</label>
-            </div>
+        <div class="form-group">
+          <label class="field-label" style="font-weight: 600; font-size: 0.95rem; margin-bottom: 10px;">Select Week Offs:</label>
+          <div style="display: flex; flex-direction: column; gap: 8px;">
+            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.95rem;"><input type="checkbox" id="chk-off-2" style="width: 18px; height: 18px;"> Monday</label>
+            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.95rem;"><input type="checkbox" id="chk-off-3" style="width: 18px; height: 18px;"> Tuesday</label>
+            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.95rem;"><input type="checkbox" id="chk-off-4" style="width: 18px; height: 18px;"> Wednesday</label>
+            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.95rem;"><input type="checkbox" id="chk-off-5" style="width: 18px; height: 18px;"> Thursday</label>
+            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.95rem;"><input type="checkbox" id="chk-off-6" style="width: 18px; height: 18px;"> Friday</label>
+            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.95rem;"><input type="checkbox" id="chk-off-7" style="width: 18px; height: 18px;"> Saturday</label>
+            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.95rem;"><input type="checkbox" id="chk-off-1" style="width: 18px; height: 18px;"> Sunday</label>
           </div>
+        </div>
 
-          <div class="form-group">
-            <label class="field-label">Office Geofence Location</label>
-            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-              <input type="number" step="any" id="set-lat" class="outlined-field" placeholder="Latitude" style="flex: 1;">
-              <input type="number" step="any" id="set-lon" class="outlined-field" placeholder="Longitude" style="flex: 1;">
-            </div>
-            <input type="number" id="set-radius" class="outlined-field" placeholder="Radius (Meters, default 100)" style="margin-bottom: 8px;">
-            <button type="button" class="btn-text" id="btn-set-current-gps">📍 Set to My Current GPS</button>
+        <div class="form-group">
+          <label class="field-label" style="font-weight: 600; font-size: 0.95rem; margin-bottom: 8px;">Office Geofence Location</label>
+          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+            <input type="number" step="any" id="admin-detail-lat" class="outlined-field" placeholder="Target Latitude">
+            <input type="number" step="any" id="admin-detail-lon" class="outlined-field" placeholder="Target Longitude">
           </div>
+          <input type="number" id="admin-detail-radius" class="outlined-field" placeholder="Allowed Radius (Meters, default 100)" style="margin-bottom: 10px;">
+          <button type="button" class="btn-text" id="btn-admin-detail-fill-gps" style="border: 1px dashed var(--primary); border-radius: 8px; width: 100%;">
+            📍 Set to My Current GPS Location
+          </button>
+        </div>
 
-          <button type="submit" class="btn-m3">Save Settings</button>
-        </form>
-      </div>
+        <button type="submit" class="btn-m3">Save Settings</button>
+      </form>
     </div>
 
     <!-- ==========================================
@@ -374,6 +409,6 @@
 
   </div>
 
-  <script type="module" src="js/app.js?v=2.1"></script>
+  <script type="module" src="js/app.js?v=2.2"></script>
 </body>
 </html>
