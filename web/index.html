@@ -13,7 +13,11 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#FFFFFF">
   
-  <link rel="stylesheet" href="css/style.css?v=3.3">
+  <link rel="stylesheet" href="css/style.css?v=3.4">
+  
+  <!-- Interactive Map (Leaflet & Google Maps style Geofence Picker) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
 </head>
 <body>
 
@@ -416,15 +420,57 @@
           </div>
 
           <div class="form-group">
-            <label class="field-label" style="font-weight: 600; font-size: 0.95rem; margin-bottom: 8px;">Office Geofence Location</label>
+            <label class="field-label" style="font-weight: 700; font-size: 0.95rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+              <span>📍 Office Location & Geofence</span>
+              <span style="font-size: 0.72rem; background: var(--surface-variant); padding: 3px 8px; border-radius: 10px; font-weight: 600; color: var(--primary);">Interactive Map</span>
+            </label>
+
+            <!-- Search Address / Places -->
             <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-              <input type="number" step="any" id="admin-detail-lat" class="outlined-field" placeholder="Target Latitude">
-              <input type="number" step="any" id="admin-detail-lon" class="outlined-field" placeholder="Target Longitude">
+              <input type="text" id="admin-map-search-input" class="outlined-field" placeholder="Search address, landmark or office..." style="margin-bottom: 0; flex: 1;">
+              <button type="button" class="btn-m3" id="btn-admin-map-search" style="margin-bottom: 0; padding: 0 16px; white-space: nowrap; height: 46px; font-size: 0.88rem;">
+                🔍 Search
+              </button>
             </div>
-            <input type="number" id="admin-detail-radius" class="outlined-field" placeholder="Allowed Radius (Meters, default 100)" style="margin-bottom: 10px;">
-            <button type="button" class="btn-text" id="btn-admin-detail-fill-gps" style="border: 1px dashed var(--primary); border-radius: 8px; width: 100%;">
-              📍 Set to My Current GPS Location
-            </button>
+
+            <!-- Interactive Map View -->
+            <div id="admin-map-container" style="position: relative; margin-bottom: 8px;">
+              <div id="admin-map-view" style="width: 100%; height: 260px; border-radius: 12px; border: 1.5px solid var(--outline); background: #f0f0f0; overflow: hidden; z-index: 1;"></div>
+              <div style="position: absolute; bottom: 6px; left: 8px; right: 8px; z-index: 500; background: rgba(0,0,0,0.7); color: #fff; font-size: 0.72rem; padding: 4px 8px; border-radius: 6px; text-align: center; pointer-events: none;">
+                👆 Tap or drag pin on map to set office location
+              </div>
+            </div>
+
+            <!-- Quick Action Buttons -->
+            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+              <button type="button" class="btn-text" id="btn-admin-detail-fill-gps" style="border: 1px dashed var(--primary); border-radius: 8px; flex: 1; padding: 8px 10px; font-size: 0.82rem; margin-bottom: 0;">
+                🎯 My Current GPS
+              </button>
+              <button type="button" class="btn-text" id="btn-admin-open-gmaps" style="border: 1px dashed var(--outline); border-radius: 8px; padding: 8px 10px; font-size: 0.82rem; margin-bottom: 0;" title="View on Google Maps">
+                🗺️ Google Maps
+              </button>
+            </div>
+
+            <!-- Coordinates Inputs (Auto-synced with Map Pin) -->
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <div style="flex: 1;">
+                <label class="field-label" style="font-size: 0.78rem;">Target Latitude</label>
+                <input type="number" step="any" id="admin-detail-lat" class="outlined-field" placeholder="Target Latitude" style="margin-bottom: 0;">
+              </div>
+              <div style="flex: 1;">
+                <label class="field-label" style="font-size: 0.78rem;">Target Longitude</label>
+                <input type="number" step="any" id="admin-detail-lon" class="outlined-field" placeholder="Target Longitude" style="margin-bottom: 0;">
+              </div>
+            </div>
+
+            <!-- Radius Input -->
+            <div>
+              <label class="field-label" style="font-size: 0.78rem;">Allowed Radius (Meters)</label>
+              <input type="number" id="admin-detail-radius" class="outlined-field" placeholder="Allowed Radius (Meters, default 100)" style="margin-bottom: 4px;">
+              <div style="font-size: 0.73rem; color: var(--text-secondary); margin-bottom: 6px;">
+                Employees must be inside this blue circle to punch attendance.
+              </div>
+            </div>
           </div>
 
           <button type="submit" class="btn-m3">Save Settings</button>
@@ -467,6 +513,6 @@
 
   </div>
 
-  <script type="module" src="js/app.js?v=3.3"></script>
+  <script type="module" src="js/app.js?v=3.4"></script>
 </body>
 </html>

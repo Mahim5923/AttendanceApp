@@ -1575,14 +1575,17 @@ function openAdminEmployeeDetail(employeeId) {
   showView(viewAdminDetail);
 }
 
-// Toggle Settings Modal
+// Toggle Settings Modal with Interactive Map Refresh
 const btnToggleAdminEmpSettings = document.getElementById("btn-toggle-admin-emp-settings");
 const modalAdminEmpSettings = document.getElementById("modal-admin-employee-settings");
 const btnCloseEmpSettingsModal = document.getElementById("btn-close-emp-settings-modal");
 
 if (btnToggleAdminEmpSettings) {
   btnToggleAdminEmpSettings.addEventListener("click", () => {
-    if (modalAdminEmpSettings) modalAdminEmpSettings.classList.add("open");
+    if (modalAdminEmpSettings) {
+      modalAdminEmpSettings.classList.add("open");
+      initOrRefreshAdminMap();
+    }
   });
 }
 if (btnCloseEmpSettingsModal) {
@@ -1761,25 +1764,246 @@ function renderAdminEmployeeDateRecords() {
   }).join("");
 }
 
+// ==========================================
+// ADMIN EMPLOYEE MAP & LOCATION PICKER (Interactive Google Maps / Leaflet)
+// ==========================================
+let adminMap = null;
+let adminMapMarker = null;
+let adminMapCircle = null;
+
+function initOrRefreshAdminMap() {
+  const mapContainer = document.getElementById("admin-map-view");
+  if (!mapContainer) return;
+
+  if (typeof L === "undefined") {
+    console.warn("Leaflet map library is loading or unavailable.");
+    return;
+  }
+
+  const latInput = document.getElementById("admin-detail-lat");
+  const lonInput = document.getElementById("admin-detail-lon");
+  const radiusInput = document.getElementById("admin-detail-radius");
+
+  let lat = parseFloat(latInput.value) || 0;
+  let lon = parseFloat(lonInput.value) || 0;
+  let radius = parseFloat(radiusInput.value) || 100;
+
+  const isDefault = (lat === 0 && lon === 0);
+  if (isDefault) {
+    if (currentGpsLocation) {
+      lat = currentGpsLocation.lat;
+      lon = currentGpsLocation.lon;
+    } else {
+      // Default to India center if unconfigured
+      lat = 20.5937;
+      lon = 78.9629;
+    }
+  }
+
+  // Pin SVG (Google Maps Red Marker style)
+  const pinSvg = `
+    <svg width="34" height="46" viewBox="0 0 34 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17 0C7.61116 0 0 7.61116 0 17C0 29.75 17 46 17 46C17 46 34 29.75 34 17C34 7.61116 26.3888 0 17 0Z" fill="#EA4335"/>
+      <circle cx="17" cy="17" r="7" fill="#FFFFFF"/>
+      <circle cx="17" cy="17" r="3.5" fill="#EA4335"/>
+    </svg>
+  `;
+  const pinIcon = L.divIcon({
+    className: "custom-map-pin",
+    html: pinSvg,
+    iconSize: [34, 46],
+    iconAnchor: [17, 46],
+    popupAnchor: [0, -46]
+  });
+
+  if (!adminMap) {
+    adminMap = L.map("admin-map-view", {
+      zoomControl: true,
+      attributionControl: false
+    }).setView([lat, lon], isDefault ? 5 : 16);
+
+    // Clean Google-styled map tiles (CartoDB Voyager)
+    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
+      maxZoom: 19,
+      subdomains: 'abcd'
+    }).addTo(adminMap);
+
+    // Marker
+    adminMapMarker = L.marker([lat, lon], {
+      draggable: true,
+      icon: pinIcon
+    }).addTo(adminMap);
+
+    // Geofence Radius Circle
+    adminMapCircle = L.circle([lat, lon], {
+      radius: radius,
+      color: "#1A73E8",
+      weight: 2,
+      fillColor: "#4285F4",
+      fillOpacity: 0.22
+    }).addTo(adminMap);
+
+    // Tap/Click anywhere on map to set location
+    adminMap.on("click", (e) => {
+      setAdminMapPosition(e.latlng.lat, e.latlng.lng, true);
+    });
+
+    // Drag pin to set location
+    adminMapMarker.on("drag", (e) => {
+      const pos = e.target.getLatLng();
+      if (adminMapCircle) adminMapCircle.setLatLng(pos);
+      if (latInput) latInput.value = pos.lat.toFixed(6);
+      if (lonInput) lonInput.value = pos.lng.toFixed(6);
+    });
+
+    adminMapMarker.on("dragend", (e) => {
+      const pos = e.target.getLatLng();
+      setAdminMapPosition(pos.lat, pos.lng, true);
+    });
+
+  } else {
+    setAdminMapPosition(lat, lon, false);
+    adminMap.setView([lat, lon], isDefault ? 5 : 16);
+  }
+
+  // Recalculate dimensions after modal popup transition
+  setTimeout(() => {
+    if (adminMap) adminMap.invalidateSize();
+  }, 250);
+}
+
+function setAdminMapPosition(lat, lon, updateInputs = true) {
+  const latInput = document.getElementById("admin-detail-lat");
+  const lonInput = document.getElementById("admin-detail-lon");
+  const radiusInput = document.getElementById("admin-detail-radius");
+  const radius = parseFloat(radiusInput ? radiusInput.value : 100) || 100;
+
+  if (updateInputs) {
+    if (latInput) latInput.value = lat.toFixed(6);
+    if (lonInput) lonInput.value = lon.toFixed(6);
+  }
+
+  if (adminMapMarker) {
+    adminMapMarker.setLatLng([lat, lon]);
+  }
+  if (adminMapCircle) {
+    adminMapCircle.setLatLng([lat, lon]);
+    adminMapCircle.setRadius(radius);
+  }
+  if (adminMap && updateInputs) {
+    adminMap.panTo([lat, lon]);
+  }
+}
+
+// Search Address / Landmark via Geocoding
+const btnAdminMapSearch = document.getElementById("btn-admin-map-search");
+const inputAdminMapSearch = document.getElementById("admin-map-search-input");
+
+async function executeAdminMapSearch() {
+  const query = inputAdminMapSearch ? inputAdminMapSearch.value.trim() : "";
+  if (!query) {
+    alert("Please enter an address or landmark to search.");
+    return;
+  }
+
+  if (btnAdminMapSearch) {
+    btnAdminMapSearch.disabled = true;
+    btnAdminMapSearch.textContent = "Searching...";
+  }
+
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+    const data = await res.json();
+    if (data && data.length > 0) {
+      const lat = parseFloat(data[0].lat);
+      const lon = parseFloat(data[0].lon);
+      setAdminMapPosition(lat, lon, true);
+      if (adminMap) adminMap.setView([lat, lon], 16);
+    } else {
+      alert("Location not found. Please try searching with city or postal code.");
+    }
+  } catch (err) {
+    console.error("Map search error:", err);
+    alert("Could not perform search. Please check your internet connection.");
+  } finally {
+    if (btnAdminMapSearch) {
+      btnAdminMapSearch.disabled = false;
+      btnAdminMapSearch.textContent = "🔍 Search";
+    }
+  }
+}
+
+if (btnAdminMapSearch) {
+  btnAdminMapSearch.addEventListener("click", executeAdminMapSearch);
+}
+if (inputAdminMapSearch) {
+  inputAdminMapSearch.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      executeAdminMapSearch();
+    }
+  });
+}
+
+// Live Radius Update on Circle
+const inputAdminDetailRadius = document.getElementById("admin-detail-radius");
+if (inputAdminDetailRadius) {
+  inputAdminDetailRadius.addEventListener("input", () => {
+    const r = parseFloat(inputAdminDetailRadius.value) || 100;
+    if (adminMapCircle) adminMapCircle.setRadius(r);
+  });
+}
+
+// Live Manual Lat/Lon Edits Update Pin on Map
+const inputAdminDetailLat = document.getElementById("admin-detail-lat");
+const inputAdminDetailLon = document.getElementById("admin-detail-lon");
+
+function onManualCoordChange() {
+  const lat = parseFloat(inputAdminDetailLat.value);
+  const lon = parseFloat(inputAdminDetailLon.value);
+  if (!isNaN(lat) && !isNaN(lon) && (lat !== 0 || lon !== 0)) {
+    setAdminMapPosition(lat, lon, false);
+    if (adminMap) adminMap.panTo([lat, lon]);
+  }
+}
+
+if (inputAdminDetailLat) inputAdminDetailLat.addEventListener("input", onManualCoordChange);
+if (inputAdminDetailLon) inputAdminDetailLon.addEventListener("input", onManualCoordChange);
+
+// Current GPS Location Button
 const btnAdminDetailFillGps = document.getElementById("btn-admin-detail-fill-gps");
 if (btnAdminDetailFillGps) {
   btnAdminDetailFillGps.addEventListener("click", () => {
-    if (currentGpsLocation) {
-      document.getElementById("admin-detail-lat").value = currentGpsLocation.lat.toFixed(6);
-      document.getElementById("admin-detail-lon").value = currentGpsLocation.lon.toFixed(6);
-      alert("GPS location acquired!");
-    } else if (navigator.geolocation) {
+    if (navigator.geolocation) {
+      btnAdminDetailFillGps.textContent = "Acquiring GPS...";
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          document.getElementById("admin-detail-lat").value = pos.coords.latitude.toFixed(6);
-          document.getElementById("admin-detail-lon").value = pos.coords.longitude.toFixed(6);
-          alert("GPS location acquired!");
+          btnAdminDetailFillGps.textContent = "🎯 My Current GPS";
+          setAdminMapPosition(pos.coords.latitude, pos.coords.longitude, true);
+          if (adminMap) adminMap.setView([pos.coords.latitude, pos.coords.longitude], 17);
         },
-        (err) => alert("Could not fetch location: " + err.message),
-        { enableHighAccuracy: true }
+        (err) => {
+          btnAdminDetailFillGps.textContent = "🎯 My Current GPS";
+          alert("Could not fetch GPS: " + err.message);
+        },
+        { enableHighAccuracy: true, timeout: 10000 }
       );
     } else {
-      alert("Location not supported on this browser.");
+      alert("Geolocation is not supported by your browser.");
+    }
+  });
+}
+
+// View on Google Maps Website Button
+const btnAdminOpenGmaps = document.getElementById("btn-admin-open-gmaps");
+if (btnAdminOpenGmaps) {
+  btnAdminOpenGmaps.addEventListener("click", () => {
+    const lat = parseFloat(document.getElementById("admin-detail-lat").value) || 0;
+    const lon = parseFloat(document.getElementById("admin-detail-lon").value) || 0;
+    if (lat !== 0 || lon !== 0) {
+      window.open(`https://www.google.com/maps?q=${lat},${lon}`, "_blank");
+    } else {
+      alert("Please select or search a location on the map first.");
     }
   });
 }
