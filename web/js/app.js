@@ -256,16 +256,7 @@ function applyTranslations() {
 
   const txtLoginBtn = document.getElementById("txt-login-btn");
   if (txtLoginBtn) {
-    txtLoginBtn.textContent = isSignUpMode 
-      ? (isHindi ? "खाता बनाएं" : "Create Account")
-      : (isHindi ? "लॉग इन करें" : "Login");
-  }
-
-  const btnSignUpToggle = document.getElementById("btn-signup-toggle");
-  if (btnSignUpToggle) {
-    btnSignUpToggle.textContent = isSignUpMode 
-      ? (isHindi ? "पहले से खाता है? लॉग इन करें" : "Already have an account? Login")
-      : (isHindi ? "नया उपयोगकर्ता? खाता बनाएं" : "New user? Tap to Register / Sign Up");
+    txtLoginBtn.textContent = isHindi ? "लॉग इन करें" : "Login";
   }
 
   const btnClockIn = document.getElementById("btn-clock-in");
@@ -301,16 +292,6 @@ function updateWelcomeText() {
   welcomeEl.textContent = isHindi ? `स्वागत है, ${name}` : `Welcome, ${name}`;
 }
 
-// --- Toggle Login / Sign Up Mode ---
-const btnSignupToggle = document.getElementById("btn-signup-toggle");
-if (btnSignupToggle) {
-  btnSignupToggle.addEventListener("click", () => {
-    isSignUpMode = !isSignUpMode;
-    hideAuthBanners();
-    applyTranslations();
-  });
-}
-
 function hideAuthBanners() {
   const errBanner = document.getElementById("login-error-banner");
   const succBanner = document.getElementById("login-success-banner");
@@ -324,27 +305,11 @@ function hideAuthBanners() {
   }
 }
 
-function showAuthError(message, showRegisterFallback = false, email = "", pass = "") {
+function showAuthError(message) {
   const errBanner = document.getElementById("login-error-banner");
   if (!errBanner) return;
   errBanner.style.display = "block";
-
-  if (showRegisterFallback && email && pass) {
-    errBanner.innerHTML = `
-      <div><strong>Login Failed:</strong> ${message}</div>
-      <div style="margin-top: 10px;">
-        <button type="button" id="btn-quick-register" style="background: #E53935; color: white; border: none; padding: 8px 14px; border-radius: 8px; font-weight: 600; cursor: pointer;">
-          Create new account for ${email}
-        </button>
-      </div>
-    `;
-    const quickBtn = document.getElementById("btn-quick-register");
-    if (quickBtn) {
-      quickBtn.addEventListener("click", () => performRegistration(email, pass));
-    }
-  } else {
-    errBanner.textContent = message;
-  }
+  errBanner.textContent = message;
 }
 
 function showAuthSuccess(message) {
@@ -352,49 +317,6 @@ function showAuthSuccess(message) {
   if (!succBanner) return;
   succBanner.style.display = "block";
   succBanner.textContent = message;
-}
-
-// --- Perform Registration Helper ---
-async function performRegistration(email, pass) {
-  const btn = document.getElementById("btn-login-submit");
-  const txtBtn = document.getElementById("txt-login-btn");
-  if (btn) btn.disabled = true;
-  if (txtBtn) txtBtn.textContent = "Creating Account...";
-  hideAuthBanners();
-
-  try {
-    const cred = await createUserWithEmailAndPassword(auth, email, pass);
-    showAuthSuccess("Account created successfully! Logging in...");
-    const db = getDb();
-    const newEmpId = cred.user.email.toLowerCase();
-    await setDoc(doc(db, "settings", newEmpId), {
-      employeeId: newEmpId,
-      displayName: newEmpId.split("@")[0],
-      baseSalary: 30000,
-      checkInTimeHours: 9,
-      checkInTimeMinutes: 0,
-      checkOutTimeHours: 17,
-      checkOutTimeMinutes: 0,
-      weekOffs: [1, 7],
-      targetLatitude: 0,
-      targetLongitude: 0,
-      targetRadiusMeters: 100
-    }, { merge: true });
-  } catch (err) {
-    console.error("Registration error:", err);
-    let msg = err.message || "Failed to create account.";
-    if (err.code === "auth/email-already-in-use") {
-      msg = "Email is already registered. Please enter your existing password to log in.";
-    } else if (err.code === "auth/weak-password") {
-      msg = "Password should be at least 6 characters.";
-    } else if (err.code === "auth/invalid-email") {
-      msg = "Invalid email format.";
-    }
-    showAuthError(msg);
-  } finally {
-    if (btn) btn.disabled = false;
-    applyTranslations();
-  }
 }
 
 // --- Login Form Submit Handler ---
@@ -414,30 +336,23 @@ if (loginForm) {
 
     hideAuthBanners();
     if (btn) btn.disabled = true;
-    if (txtBtn) txtBtn.textContent = isSignUpMode ? "Registering..." : "Authenticating...";
-
-    if (isSignUpMode) {
-      await performRegistration(email, pass);
-      return;
-    }
+    if (txtBtn) txtBtn.textContent = isHindi ? "सत्यापित हो रहा है..." : "Authenticating...";
 
     try {
       await signInWithEmailAndPassword(auth, email, pass);
     } catch (err) {
       console.error("Sign-in error:", err);
       let msg = err.message || "Login failed.";
-      let offerRegistration = false;
 
       if (err.code === "auth/invalid-credential" || err.code === "auth/user-not-found" || err.message?.includes("INVALID_LOGIN_CREDENTIALS")) {
         msg = "Account not found or password incorrect.";
-        offerRegistration = true;
       } else if (err.code === "auth/wrong-password") {
         msg = "Incorrect password. Please try again.";
       } else if (err.code === "auth/network-request-failed") {
         msg = "Network error. Please check your internet connection.";
       }
 
-      showAuthError(msg, offerRegistration, email, pass);
+      showAuthError(msg);
     } finally {
       if (btn) btn.disabled = false;
       applyTranslations();
