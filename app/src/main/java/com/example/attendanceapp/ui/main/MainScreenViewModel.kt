@@ -201,7 +201,7 @@ class MainScreenViewModel(private val dataRepository: DataRepository) : ViewMode
             }
         }
 
-        val presentDays = attendances
+        val inDays = attendances
             .filter { it.type == AttendanceType.IN }
             .filter {
                 val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }
@@ -211,8 +211,21 @@ class MainScreenViewModel(private val dataRepository: DataRepository) : ViewMode
                 val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }
                 c.get(Calendar.DAY_OF_YEAR)
             }
-            .distinct()
-            .size
+            .toSet()
+
+        val outDays = attendances
+            .filter { it.type == AttendanceType.OUT }
+            .filter {
+                val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }
+                c.get(Calendar.YEAR) == year && c.get(Calendar.MONTH) == month
+            }
+            .map { 
+                val c = Calendar.getInstance().apply { timeInMillis = it.timestamp }
+                c.get(Calendar.DAY_OF_YEAR)
+            }
+            .toSet()
+
+        val presentDays = inDays.intersect(outDays).size
 
         val employeeLeaves = dataRepository.leaveRequests.value.filter { it.employeeId == employeeId && it.status == LeaveStatus.APPROVED }
         

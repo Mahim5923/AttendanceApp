@@ -357,11 +357,14 @@ public class FirebaseService: ObservableObject {
             return y == targetYear && m == targetMonth
         }
 
-        var presentDaySet = Set<Int>()
+        var inDays = Set<Int>()
+        var outDays = Set<Int>()
         userAtts.forEach { att in
-            presentDaySet.insert(calendar.component(.day, from: att.date))
+            let day = calendar.component(.day, from: att.date)
+            if att.type == .IN { inDays.insert(day) }
+            if att.type == .OUT { outDays.insert(day) }
         }
-        let presentDays = presentDaySet.count
+        let presentDays = inDays.intersection(outDays).count
 
         let userLeaves = leaveRequests.filter { req in
             if req.employeeId.lowercased() != empLower || req.status != .APPROVED { return false }

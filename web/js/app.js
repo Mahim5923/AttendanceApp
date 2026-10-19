@@ -995,17 +995,26 @@ function renderSalaryReport() {
     }
   }
 
-  const userAtts = attendances.filter(a => {
+  // Only count a day as PRESENT if the employee marked BOTH IN and OUT on that date
+  const dayPunches = {};
+  attendances.forEach(a => {
+    if (currentUser && a.employeeId.toLowerCase() !== currentUser.email.toLowerCase()) return;
     const d = new Date(a.timestamp);
-    return d.getFullYear() === year && d.getMonth() === monthIndex;
+    if (d.getFullYear() === year && d.getMonth() === monthIndex) {
+      const day = d.getDate();
+      if (!dayPunches[day]) dayPunches[day] = { hasIn: false, hasOut: false };
+      const typeUpper = (a.type || "").toUpperCase().trim();
+      if (typeUpper === "IN") dayPunches[day].hasIn = true;
+      if (typeUpper === "OUT") dayPunches[day].hasOut = true;
+    }
   });
 
-  const presentDates = new Set();
-  userAtts.forEach(a => {
-    const d = new Date(a.timestamp);
-    presentDates.add(d.getDate());
-  });
-  const daysPresent = presentDates.size;
+  let daysPresent = 0;
+  for (const day in dayPunches) {
+    if (dayPunches[day].hasIn && dayPunches[day].hasOut) {
+      daysPresent++;
+    }
+  }
 
   const approvedLeaves = leaveRequests.filter(l => {
     if (l.status !== "APPROVED") return false;
@@ -1081,14 +1090,26 @@ function exportMonthlyCsv() {
       if (!weekOffs.includes(d.getDay() + 1)) workingDays++;
     }
 
-    const empAtts = attendances.filter(a => a.employeeId.toLowerCase() === empId);
-    const presentDates = new Set();
-    empAtts.forEach(a => {
+    // Only count as present if BOTH IN and OUT were marked
+    const dayPunches = {};
+    attendances.forEach(a => {
+      if (a.employeeId.toLowerCase() !== empId) return;
       const d = new Date(a.timestamp);
       if (d.getFullYear() === year && d.getMonth() === month) {
-        presentDates.add(d.getDate());
+        const day = d.getDate();
+        if (!dayPunches[day]) dayPunches[day] = { hasIn: false, hasOut: false };
+        const typeUpper = (a.type || "").toUpperCase().trim();
+        if (typeUpper === "IN") dayPunches[day].hasIn = true;
+        if (typeUpper === "OUT") dayPunches[day].hasOut = true;
       }
     });
+
+    let presentDays = 0;
+    for (const day in dayPunches) {
+      if (dayPunches[day].hasIn && dayPunches[day].hasOut) {
+        presentDays++;
+      }
+    }
 
     const approvedLeaves = leaveRequests.filter(l => {
       if (l.employeeId.toLowerCase() !== empId || l.status !== "APPROVED") return false;
@@ -1342,19 +1363,26 @@ function calculateSalaryForEmployee(empId, year, month) {
     }
   }
 
-  const empAtts = attendances.filter(a => {
-    if (a.employeeId.toLowerCase() !== empId.toLowerCase()) return false;
-    if (a.type && a.type !== "IN") return false;
+  // Only count a day as PRESENT if the employee marked BOTH IN and OUT on that date
+  const dayPunches = {};
+  attendances.forEach(a => {
+    if (a.employeeId.toLowerCase() !== empId.toLowerCase()) return;
     const d = new Date(a.timestamp);
-    return d.getFullYear() === year && d.getMonth() === month;
+    if (d.getFullYear() === year && d.getMonth() === month) {
+      const day = d.getDate();
+      if (!dayPunches[day]) dayPunches[day] = { hasIn: false, hasOut: false };
+      const typeUpper = (a.type || "").toUpperCase().trim();
+      if (typeUpper === "IN") dayPunches[day].hasIn = true;
+      if (typeUpper === "OUT") dayPunches[day].hasOut = true;
+    }
   });
 
-  const presentDaysSet = new Set();
-  empAtts.forEach(a => {
-    const d = new Date(a.timestamp);
-    presentDaysSet.add(d.getDate());
-  });
-  const presentDays = presentDaysSet.size;
+  let presentDays = 0;
+  for (const day in dayPunches) {
+    if (dayPunches[day].hasIn && dayPunches[day].hasOut) {
+      presentDays++;
+    }
+  }
 
   const empLeaves = leaveRequests.filter(l => {
     if (l.employeeId.toLowerCase() !== empId.toLowerCase()) return false;
