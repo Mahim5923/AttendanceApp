@@ -372,3 +372,27 @@ body {
   transform: scale(0.99);
 }
 
+/* Calendar Styles - Strict 7-column layout */
+#admin-emp-calendar-grid, #cal-grid-container, .calendar-grid {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  gap: 4px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.calendar-header-row {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.calendar-header-cell {
+  font-weight: 700;
+  color: #9E9E9E;
+  font-size: 0.75rem;
+  padding: 4px 0;
+  text-align: center;
+}
+

@@ -1622,11 +1622,18 @@ function renderAdminEmployeeCalendar() {
   const gridEl = document.getElementById("admin-emp-calendar-grid");
   if (!gridEl) return;
 
-  gridEl.innerHTML = "";
-
   const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun
   const daysInMonth = new Date(year, month + 1, 0).getDate();
-  const prevMonthDays = new Date(year, month, 0).getDate();
+
+  const dayHeaders = ["S", "M", "T", "W", "T", "F", "S"];
+  let html = dayHeaders.map(h => `
+    <div style="font-weight: 700; color: #9E9E9E; font-size: 0.78rem; padding: 6px 0; text-align: center;">${h}</div>
+  `).join("");
+
+  // Leading empty slots before the 1st of the month
+  for (let i = 0; i < firstDayIndex; i++) {
+    html += `<div></div>`;
+  }
 
   const s = getMySettings(adminDetailEmployeeId);
   const weekOffs = s.weekOffs || [1, 7]; // 1 = Sun, 7 = Sat
@@ -1634,17 +1641,10 @@ function renderAdminEmployeeCalendar() {
   const empAtts = attendances.filter(a => a.employeeId.toLowerCase() === adminDetailEmployeeId.toLowerCase());
   const empLeaves = leaveRequests.filter(l => l.employeeId.toLowerCase() === adminDetailEmployeeId.toLowerCase() && l.status === "APPROVED");
 
-  // Leading empty days
-  for (let i = firstDayIndex - 1; i >= 0; i--) {
-    const dayNum = prevMonthDays - i;
-    const cell = document.createElement("div");
-    cell.className = "calendar-cell other-month";
-    cell.innerHTML = `<span>${dayNum}</span>`;
-    gridEl.appendChild(cell);
-  }
+  const today = new Date();
+  today.setHours(0, 0, 0, 0);
 
   // Active month days
-  const today = new Date();
   for (let d = 1; d <= daysInMonth; d++) {
     const dateObj = new Date(year, month, d);
     const dayOfWeek = dateObj.getDay() + 1; // 1 = Sun, 7 = Sat
@@ -1660,40 +1660,43 @@ function renderAdminEmployeeCalendar() {
       return ld.getFullYear() === year && ld.getMonth() === month && ld.getDate() === d;
     });
 
-    const isPast = dateObj < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    let dotColor = "transparent";
+    if (isWeekOff) {
+      dotColor = "#9E9E9E"; // Week Off (Gray)
+    } else if (hasAtt) {
+      dotColor = "#2E7D32"; // Present (Green)
+    } else if (hasApprovedLeave) {
+      dotColor = "#F57C00"; // Leave (Orange)
+    } else if (dateObj < today) {
+      dotColor = "#D32F2F"; // Absent (Red)
+    }
+
     const isSelected = (
       adminEmpSelectedDate.getFullYear() === year &&
       adminEmpSelectedDate.getMonth() === month &&
       adminEmpSelectedDate.getDate() === d
     );
 
-    let dotColor = "transparent";
-    if (hasAtt) {
-      dotColor = "#2E7D32"; // Green: Present
-    } else if (hasApprovedLeave) {
-      dotColor = "#F57C00"; // Orange: Leave
-    } else if (isWeekOff) {
-      dotColor = "#9E9E9E"; // Gray: Week Off
-    } else if (isPast) {
-      dotColor = "#D32F2F"; // Red: Absent
-    }
-
-    const cell = document.createElement("div");
-    cell.className = `calendar-cell ${isSelected ? "selected" : ""}`;
-    cell.innerHTML = `
-      <span>${d}</span>
-      <div class="calendar-dot" style="background: ${dotColor};"></div>
+    html += `
+      <div class="admin-cal-day-cell" data-day="${d}" style="padding: 6px 0; cursor: pointer; border-radius: 8px; text-align: center; transition: background 0.15s; ${isSelected ? 'background: #FFEBEE; border: 1.5px solid #E53935;' : 'border: 1.5px solid transparent;'}">
+        <div style="font-size: 0.88rem; font-weight: ${isSelected ? '700' : '500'}; color: ${isSelected ? '#E53935' : '#1C1B1F'};">${d}</div>
+        <div style="width: 6px; height: 6px; border-radius: 50%; background: ${dotColor}; margin: 3px auto 0;"></div>
+      </div>
     `;
+  }
 
+  gridEl.innerHTML = html;
+
+  gridEl.querySelectorAll(".admin-cal-day-cell").forEach(cell => {
     cell.addEventListener("click", () => {
-      adminEmpSelectedDate = new Date(year, month, d);
+      const dayNum = parseInt(cell.getAttribute("data-day"));
+      adminEmpSelectedDate = new Date(year, month, dayNum);
       renderAdminEmployeeCalendar();
       renderAdminEmployeeDateRecords();
     });
-
-    gridEl.appendChild(cell);
-  }
+  });
 }
+
 
 // Render Attendance Records for Selected Date
 function renderAdminEmployeeDateRecords() {

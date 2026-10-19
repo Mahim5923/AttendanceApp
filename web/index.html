@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#FFFFFF">
   
-  <link rel="stylesheet" href="css/style.css?v=3.2">
+  <link rel="stylesheet" href="css/style.css?v=3.3">
 </head>
 <body>
 
@@ -340,19 +340,8 @@
           <button class="btn-text" id="btn-admin-emp-next-month" style="font-size: 1.2rem; padding: 4px 10px;">▶</button>
         </div>
 
-        <!-- Calendar Weekday Headers -->
-        <div class="calendar-header-row" style="margin-bottom: 8px;">
-          <div class="calendar-header-cell">S</div>
-          <div class="calendar-header-cell">M</div>
-          <div class="calendar-header-cell">T</div>
-          <div class="calendar-header-cell">W</div>
-          <div class="calendar-header-cell">T</div>
-          <div class="calendar-header-cell">F</div>
-          <div class="calendar-header-cell">S</div>
-        </div>
-
-        <!-- Calendar Days Grid -->
-        <div id="admin-emp-calendar-grid" class="calendar-grid" style="margin-bottom: 12px;"></div>
+        <!-- Calendar Days Grid (7 columns) -->
+        <div id="admin-emp-calendar-grid" style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; margin-bottom: 12px; background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 12px; padding: 12px 8px;"></div>
 
         <!-- Legend -->
         <div style="display: flex; justify-content: space-around; font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 16px; padding: 8px; background: #FAFAFA; border-radius: 8px;">
@@ -478,6 +467,6 @@
 
   </div>
 
-  <script type="module" src="js/app.js?v=3.2"></script>
+  <script type="module" src="js/app.js?v=3.3"></script>
 </body>
 </html>
