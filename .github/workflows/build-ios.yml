@@ -24,7 +24,6 @@ jobs:
       - name: Verify Xcode & Tools
         run: |
           xcodebuild -version
-          pod --version || true
 
       - name: Build Xcode Project
         run: |
@@ -34,15 +33,22 @@ jobs:
             -configuration Release \
             -sdk iphoneos \
             -destination "generic/platform=iOS" \
+            -derivedDataPath derived_data \
             CODE_SIGNING_ALLOWED=NO \
             CODE_SIGNING_REQUIRED=NO \
-            CODE_SIGN_IDENTITY="" \
-            SYMROOT=build
+            CODE_SIGN_IDENTITY=""
 
       - name: Package .ipa File
         run: |
+          APP_PATH=$(find . -name "AttendPro.app" -type d | head -n 1)
+          echo "Located App bundle at: $APP_PATH"
+          if [ -z "$APP_PATH" ]; then
+            echo "ERROR: AttendPro.app was not found!"
+            find . -maxdepth 4
+            exit 1
+          fi
           mkdir -p Payload
-          cp -r build/Release-iphoneos/AttendPro.app Payload/
+          cp -r "$APP_PATH" Payload/
           zip -r AttendPro.ipa Payload
           ls -lh AttendPro.ipa
 
