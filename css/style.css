@@ -1,0 +1,426 @@
+/* ==========================================================================
+   AttendPro - Clean Material 3 Theme (100% Matching Android App UI)
+   ========================================================================== */
+@import url('https://fonts.googleapis.com/css2?family=Roboto:wght@300;400;500;700&family=Inter:wght@400;500;600;700&display=swap');
+
+:root {
+  --font-main: 'Roboto', 'Inter', -apple-system, BlinkMacSystemFont, sans-serif;
+
+  /* Android Light Color Scheme */
+  --bg-color: #FFFFFF;
+  --surface-color: #FFFFFF;
+  --text-primary: #1C1B1F;
+  --text-secondary: #49454F;
+  --outline-color: #79747E;
+  --outline-variant: #CAC4D0;
+
+  /* Red Theme Palette from Android Color.kt */
+  --primary: #E53935;
+  --primary-hover: #D32F2F;
+  --primary-active: #C62828;
+  --on-primary: #FFFFFF;
+
+  --success: #2E7D32;
+  --error: #B3261E;
+
+  --btn-height: 56px;
+  --btn-radius: 16px;
+  --field-radius: 12px;
+}
+
+* {
+  box-sizing: border-box;
+  margin: 0;
+  padding: 0;
+  -webkit-tap-highlight-color: transparent;
+}
+
+body {
+  font-family: var(--font-main);
+  background-color: #F8F9FA;
+  color: var(--text-primary);
+  min-height: 100vh;
+  display: flex;
+  justify-content: center;
+  align-items: stretch;
+}
+
+/* App Shell (Mobile frame on PC, full screen on iOS) */
+#app-container {
+  width: 100%;
+  max-width: 440px;
+  min-height: 100vh;
+  background-color: var(--bg-color);
+  display: flex;
+  flex-direction: column;
+  position: relative;
+  box-shadow: 0 0 30px rgba(0, 0, 0, 0.08);
+}
+
+/* Views */
+.view {
+  display: none;
+  flex: 1;
+  flex-direction: column;
+  padding: 24px;
+  background-color: var(--bg-color);
+}
+
+.view.active {
+  display: flex;
+}
+
+/* Top Banner Image (matches Android 220dp banner) */
+.android-banner {
+  width: 100%;
+  height: 200px;
+  object-fit: contain;
+  margin-bottom: 24px;
+}
+
+/* Material 3 Outlined Text Field */
+.form-group {
+  margin-bottom: 20px;
+  position: relative;
+  text-align: left;
+}
+
+.field-label {
+  display: block;
+  font-size: 0.82rem;
+  font-weight: 500;
+  color: var(--text-secondary);
+  margin-bottom: 6px;
+}
+
+.outlined-field {
+  width: 100%;
+  height: 56px;
+  padding: 0 16px;
+  font-family: var(--font-main);
+  font-size: 1rem;
+  color: var(--text-primary);
+  background-color: transparent;
+  border: 1.5px solid var(--outline-color);
+  border-radius: var(--field-radius);
+  outline: none;
+  transition: all 0.2s ease;
+}
+
+.outlined-field:focus {
+  border-color: var(--primary);
+  border-width: 2px;
+}
+
+/* Android Buttons (56dp height, rounded) */
+.btn-m3 {
+  width: 100%;
+  height: var(--btn-height);
+  background-color: var(--primary);
+  color: var(--on-primary);
+  font-family: var(--font-main);
+  font-size: 1rem;
+  font-weight: 500;
+  border: none;
+  border-radius: var(--btn-radius);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  transition: background-color 0.2s ease, transform 0.1s ease;
+  box-shadow: 0 2px 6px rgba(229, 57, 53, 0.25);
+  margin-bottom: 16px;
+}
+
+.btn-m3:hover, .btn-m3:active {
+  background-color: var(--primary-hover);
+}
+
+.btn-m3:disabled {
+  background-color: #E0E0E0;
+  color: #9E9E9E;
+  box-shadow: none;
+  cursor: not-allowed;
+}
+
+/* Secondary Button */
+.btn-m3-secondary {
+  background-color: #F1F3F5;
+  color: var(--text-primary);
+  box-shadow: none;
+}
+
+.btn-m3-secondary:hover {
+  background-color: #E9ECEF;
+}
+
+/* Text Button (like Android TextButton) */
+.btn-text {
+  background: transparent;
+  border: none;
+  color: var(--primary);
+  font-family: var(--font-main);
+  font-size: 0.95rem;
+  font-weight: 500;
+  padding: 10px 16px;
+  cursor: pointer;
+  border-radius: 8px;
+  transition: background 0.2s ease;
+}
+
+.btn-text:hover {
+  background-color: rgba(229, 57, 53, 0.08);
+}
+
+/* Error message banner */
+.error-banner {
+  background-color: #FFEBEE;
+  color: var(--error);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  margin-bottom: 16px;
+  border-left: 4px solid var(--error);
+  text-align: left;
+}
+
+/* Success banner */
+.success-banner {
+  background-color: #E8F5E9;
+  color: var(--success);
+  padding: 12px 16px;
+  border-radius: 8px;
+  font-size: 0.88rem;
+  margin-bottom: 16px;
+  border-left: 4px solid var(--success);
+  text-align: left;
+}
+
+/* Android Main Screen Top Navigation */
+.main-top-bar {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 8px;
+}
+
+/* Centered Clock & Date in Main Screen */
+.time-heading {
+  font-size: 1.5rem;
+  font-weight: 500;
+  text-align: center;
+  line-height: 1.35;
+  color: var(--text-primary);
+  margin-bottom: 10px;
+}
+
+.welcome-text {
+  font-size: 1rem;
+  color: var(--text-secondary);
+  text-align: center;
+  margin-bottom: 28px;
+}
+
+/* Side-by-Side IN & OUT Buttons (matches Android Row of 2 buttons) */
+.in-out-row {
+  display: flex;
+  gap: 16px;
+  margin-bottom: 16px;
+}
+
+.in-out-row .btn-m3 {
+  flex: 1;
+  margin-bottom: 0;
+}
+
+/* Floating Action Button (FAB) for Chat (Bottom-Right) */
+.fab-chat {
+  position: fixed;
+  bottom: 28px;
+  right: calc(50% - 220px + 24px);
+  width: 56px;
+  height: 56px;
+  border-radius: 16px;
+  background-color: var(--primary);
+  color: #FFF;
+  border: none;
+  box-shadow: 0 4px 12px rgba(229, 57, 53, 0.4);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 1.6rem;
+  cursor: pointer;
+  z-index: 40;
+  transition: transform 0.2s ease;
+}
+
+@media (max-width: 440px) {
+  .fab-chat {
+    right: 20px;
+  }
+}
+
+.fab-chat:hover, .fab-chat:active {
+  transform: scale(1.05);
+  background-color: var(--primary-hover);
+}
+
+/* Attendance History List */
+.history-card {
+  background: #FFFFFF;
+  border: 1px solid #E0E0E0;
+  border-radius: 12px;
+  padding: 14px 16px;
+  display: flex;
+  align-items: center;
+  gap: 14px;
+  margin-bottom: 12px;
+  box-shadow: 0 1px 4px rgba(0,0,0,0.04);
+}
+
+.history-thumb {
+  width: 52px;
+  height: 52px;
+  border-radius: 8px;
+  object-fit: cover;
+  background: #EEEEEE;
+}
+
+/* Chat View */
+.chat-thread {
+  flex: 1;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  padding: 12px 0;
+}
+
+.chat-bubble {
+  max-width: 78%;
+  padding: 10px 14px;
+  border-radius: 16px;
+  font-size: 0.95rem;
+  line-height: 1.4;
+}
+
+.chat-bubble.mine {
+  align-self: flex-end;
+  background-color: var(--primary);
+  color: #FFF;
+  border-bottom-right-radius: 4px;
+}
+
+.chat-bubble.theirs {
+  align-self: flex-start;
+  background-color: #F1F3F5;
+  color: var(--text-primary);
+  border-bottom-left-radius: 4px;
+}
+
+/* Modal Windows */
+.modal-overlay {
+  display: none;
+  position: fixed;
+  top: 0; left: 0; right: 0; bottom: 0;
+  background: rgba(0, 0, 0, 0.65);
+  z-index: 1000;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+
+.modal-overlay.open {
+  display: flex;
+}
+
+.modal-content {
+  width: 100%;
+  max-width: 440px;
+  background: #FFF;
+  border-radius: 20px;
+  padding: 24px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.camera-preview-box {
+  width: 100%;
+  height: 260px;
+  background: #000;
+  border-radius: 12px;
+  overflow: hidden;
+  margin-bottom: 16px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.camera-preview-box video, .camera-preview-box img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.emp-card-row:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 3px 8px rgba(0,0,0,0.08) !important;
+}
+
+.emp-card-row:active {
+  transform: scale(0.99);
+}
+
+/* Calendar Styles - Strict 7-column layout */
+#admin-emp-calendar-grid, #cal-grid-container, .calendar-grid {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  gap: 4px;
+  text-align: center;
+  box-sizing: border-box;
+}
+
+.calendar-header-row {
+  display: grid !important;
+  grid-template-columns: repeat(7, 1fr) !important;
+  text-align: center;
+  margin-bottom: 8px;
+}
+
+.calendar-header-cell {
+  font-weight: 700;
+  color: #9E9E9E;
+  font-size: 0.75rem;
+  padding: 4px 0;
+  text-align: center;
+}
+
+/* Map & Location Geofence Styles */
+#admin-map-view {
+  width: 100%;
+  height: 260px;
+  border-radius: 12px;
+  box-shadow: inset 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.custom-map-pin {
+  background: transparent !important;
+  border: none !important;
+  cursor: grab;
+}
+
+.custom-map-pin:active {
+  cursor: grabbing;
+}
+
+.custom-map-pin svg {
+  filter: drop-shadow(0 3px 6px rgba(0,0,0,0.4));
+  transition: transform 0.15s cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+.custom-map-pin:hover svg {
+  transform: scale(1.15) translateY(-2px);
+}
+
+
