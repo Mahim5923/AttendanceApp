@@ -1822,11 +1822,19 @@ function initOrRefreshAdminMap() {
       attributionControl: false
     }).setView([lat, lon], isDefault ? 5 : 16);
 
-    // Clean Google-styled map tiles (CartoDB Voyager)
-    L.tileLayer("https://{s}.basemaps.cartocdn.com/rastertiles/voyager/{z}/{x}/{y}{r}.png", {
-      maxZoom: 19,
-      subdomains: 'abcd'
-    }).addTo(adminMap);
+    // Real Google Maps Tiles (Roadmap & Satellite - 100% Free, NO API Key needed!)
+    const googleRoadmap = L.tileLayer("https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", {
+      maxZoom: 20
+    });
+    const googleSatellite = L.tileLayer("https://mt1.google.com/vt/lyrs=y&x={x}&y={y}&z={z}", {
+      maxZoom: 20
+    });
+    googleRoadmap.addTo(adminMap);
+
+    L.control.layers({
+      "Google Map": googleRoadmap,
+      "Satellite": googleSatellite
+    }, null, { position: "topright" }).addTo(adminMap);
 
     // Marker
     adminMapMarker = L.marker([lat, lon], {
