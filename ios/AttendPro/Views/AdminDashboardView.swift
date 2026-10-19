@@ -3,6 +3,7 @@ import SwiftUI
 public struct AdminDashboardView: View {
     @ObservedObject var firebase = FirebaseService.shared
     @State private var activeSheet: SheetType? = nil
+    @State private var selectedEmployeeForDetail: String? = nil
     @State private var selectedEmployeeForEdit: String? = nil
     @State private var selectedEmployeeForChat: (id: String, name: String)? = nil
     @State private var shareURL: URL? = nil
@@ -10,6 +11,7 @@ public struct AdminDashboardView: View {
     enum SheetType: Identifiable {
         case leaves
         case monthlyReport
+        case detailEmployee
         case editEmployee
         case chatList
         case directChat
@@ -172,8 +174,8 @@ public struct AdminDashboardView: View {
                                             .stroke(Color.gray.opacity(0.2), lineWidth: 1)
                                     )
                                     .onTapGesture {
-                                        selectedEmployeeForEdit = empId
-                                        activeSheet = .editEmployee
+                                        selectedEmployeeForDetail = empId
+                                        activeSheet = .detailEmployee
                                     }
                                 }
                             }
@@ -210,6 +212,10 @@ public struct AdminDashboardView: View {
                 ManageLeavesView()
             case .monthlyReport:
                 MonthlyReportView()
+            case .detailEmployee:
+                if let empId = selectedEmployeeForDetail {
+                    AdminEmployeeDetailView(employeeId: empId)
+                }
             case .editEmployee:
                 if let empId = selectedEmployeeForEdit {
                     AdminEmployeeSettingsView(employeeId: empId)

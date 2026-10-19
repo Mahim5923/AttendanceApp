@@ -1340,6 +1340,10 @@ function refreshAdminViews() {
   if (viewAdminReport && viewAdminReport.classList.contains("active")) {
     renderMonthlyReportScreen();
   }
+  if (viewAdminDetail && viewAdminDetail.classList.contains("active") && adminDetailEmployeeId) {
+    renderAdminEmployeeCalendar();
+    renderAdminEmployeeDateRecords();
+  }
 }
 
 // 1. Navigation Button Event Handlers
@@ -1513,12 +1517,40 @@ function renderAdminDashboard() {
   });
 }
 
-// 4. Admin Employee Detail / Settings Screen (Matches Android AdminEmployeeSettingsScreen.kt)
-function openAdminEmployeeDetail(employeeId) {
-  const s = getMySettings(employeeId);
-  const titleEl = document.getElementById("admin-detail-title");
-  if (titleEl) titleEl.textContent = `Settings: ${employeeId}`;
+// 4. Admin Employee Detail & Attendance Screen (Matches Android AdminEmployeeDetailScreen.kt)
+let adminDetailEmployeeId = null;
+let adminEmpCalendarDate = new Date();
+let adminEmpSelectedDate = new Date();
 
+function openAdminEmployeeDetail(employeeId) {
+  adminDetailEmployeeId = employeeId;
+  adminEmpCalendarDate = new Date();
+  adminEmpSelectedDate = new Date();
+
+  const s = getMySettings(employeeId);
+  const displayName = (s.displayName && s.displayName.trim().length > 0) ? s.displayName.trim() : employeeId;
+
+  // Header Title
+  const titleEl = document.getElementById("admin-detail-title");
+  if (titleEl) titleEl.textContent = `Details: ${displayName}`;
+
+  // Overview Info Card
+  const dispSalary = document.getElementById("admin-detail-disp-salary");
+  if (dispSalary) dispSalary.textContent = `₹${(s.baseSalary || 30000).toLocaleString()}`;
+
+  const dispShift = document.getElementById("admin-detail-disp-shift");
+  const inH = String(s.checkInTimeHours ?? 9).padStart(2, "0");
+  const inM = String(s.checkInTimeMinutes ?? 0).padStart(2, "0");
+  const outH = String(s.checkOutTimeHours ?? 17).padStart(2, "0");
+  const outM = String(s.checkOutTimeMinutes ?? 0).padStart(2, "0");
+  if (dispShift) dispShift.textContent = `${inH}:${inM} - ${outH}:${outM}`;
+
+  const weekDays = { 1: "Sunday", 2: "Monday", 3: "Tuesday", 4: "Wednesday", 5: "Thursday", 6: "Friday", 7: "Saturday" };
+  const offs = (s.weekOffs || [1, 7]).map(w => weekDays[w]).filter(Boolean).join(", ");
+  const dispOffs = document.getElementById("admin-detail-disp-offs");
+  if (dispOffs) dispOffs.textContent = offs.length > 0 ? offs : "None";
+
+  // Pre-fill Edit Modal Fields
   document.getElementById("admin-detail-emp-id").value = employeeId;
   document.getElementById("admin-detail-display-name").value = s.displayName || "";
   document.getElementById("admin-detail-base-salary").value = s.baseSalary || 30000;
@@ -1527,18 +1559,203 @@ function openAdminEmployeeDetail(employeeId) {
   document.getElementById("admin-detail-out-hour").value = s.checkOutTimeHours ?? 17;
   document.getElementById("admin-detail-out-min").value = s.checkOutTimeMinutes ?? 0;
 
-  // Calendar: Sunday=1, Monday=2, Tuesday=3, Wednesday=4, Thursday=5, Friday=6, Saturday=7
-  const offs = s.weekOffs || [1, 7];
   for (let i = 1; i <= 7; i++) {
     const chk = document.getElementById(`chk-off-${i}`);
-    if (chk) chk.checked = offs.includes(i);
+    if (chk) chk.checked = (s.weekOffs || [1, 7]).includes(i);
   }
 
   document.getElementById("admin-detail-lat").value = s.targetLatitude || 0;
   document.getElementById("admin-detail-lon").value = s.targetLongitude || 0;
   document.getElementById("admin-detail-radius").value = s.targetRadiusMeters || 100;
 
+  // Render the employee's attendance calendar and attendance records
+  renderAdminEmployeeCalendar();
+  renderAdminEmployeeDateRecords();
+
   showView(viewAdminDetail);
+}
+
+// Toggle Settings Modal
+const btnToggleAdminEmpSettings = document.getElementById("btn-toggle-admin-emp-settings");
+const modalAdminEmpSettings = document.getElementById("modal-admin-employee-settings");
+const btnCloseEmpSettingsModal = document.getElementById("btn-close-emp-settings-modal");
+
+if (btnToggleAdminEmpSettings) {
+  btnToggleAdminEmpSettings.addEventListener("click", () => {
+    if (modalAdminEmpSettings) modalAdminEmpSettings.classList.add("open");
+  });
+}
+if (btnCloseEmpSettingsModal) {
+  btnCloseEmpSettingsModal.addEventListener("click", () => {
+    if (modalAdminEmpSettings) modalAdminEmpSettings.classList.remove("open");
+  });
+}
+
+// Month Navigation in Employee Attendance
+const btnAdminEmpPrevMonth = document.getElementById("btn-admin-emp-prev-month");
+if (btnAdminEmpPrevMonth) {
+  btnAdminEmpPrevMonth.addEventListener("click", () => {
+    adminEmpCalendarDate.setMonth(adminEmpCalendarDate.getMonth() - 1);
+    renderAdminEmployeeCalendar();
+  });
+}
+
+const btnAdminEmpNextMonth = document.getElementById("btn-admin-emp-next-month");
+if (btnAdminEmpNextMonth) {
+  btnAdminEmpNextMonth.addEventListener("click", () => {
+    adminEmpCalendarDate.setMonth(adminEmpCalendarDate.getMonth() + 1);
+    renderAdminEmployeeCalendar();
+  });
+}
+
+// Render Employee Attendance Calendar (Matches Android CalendarAttendanceView)
+function renderAdminEmployeeCalendar() {
+  if (!adminDetailEmployeeId) return;
+
+  const year = adminEmpCalendarDate.getFullYear();
+  const month = adminEmpCalendarDate.getMonth();
+  const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
+
+  const labelEl = document.getElementById("disp-admin-emp-month-year");
+  if (labelEl) labelEl.textContent = `${monthNames[month]} ${year}`;
+
+  const gridEl = document.getElementById("admin-emp-calendar-grid");
+  if (!gridEl) return;
+
+  gridEl.innerHTML = "";
+
+  const firstDayIndex = new Date(year, month, 1).getDay(); // 0 = Sun
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+  const prevMonthDays = new Date(year, month, 0).getDate();
+
+  const s = getMySettings(adminDetailEmployeeId);
+  const weekOffs = s.weekOffs || [1, 7]; // 1 = Sun, 7 = Sat
+
+  const empAtts = attendances.filter(a => a.employeeId.toLowerCase() === adminDetailEmployeeId.toLowerCase());
+  const empLeaves = leaveRequests.filter(l => l.employeeId.toLowerCase() === adminDetailEmployeeId.toLowerCase() && l.status === "APPROVED");
+
+  // Leading empty days
+  for (let i = firstDayIndex - 1; i >= 0; i--) {
+    const dayNum = prevMonthDays - i;
+    const cell = document.createElement("div");
+    cell.className = "calendar-cell other-month";
+    cell.innerHTML = `<span>${dayNum}</span>`;
+    gridEl.appendChild(cell);
+  }
+
+  // Active month days
+  const today = new Date();
+  for (let d = 1; d <= daysInMonth; d++) {
+    const dateObj = new Date(year, month, d);
+    const dayOfWeek = dateObj.getDay() + 1; // 1 = Sun, 7 = Sat
+    const isWeekOff = weekOffs.includes(dayOfWeek);
+
+    const hasAtt = empAtts.some(a => {
+      const ad = new Date(a.timestamp);
+      return ad.getFullYear() === year && ad.getMonth() === month && ad.getDate() === d;
+    });
+
+    const hasApprovedLeave = empLeaves.some(l => {
+      const ld = new Date(l.dateTimestamp);
+      return ld.getFullYear() === year && ld.getMonth() === month && ld.getDate() === d;
+    });
+
+    const isPast = dateObj < new Date(today.getFullYear(), today.getMonth(), today.getDate());
+    const isSelected = (
+      adminEmpSelectedDate.getFullYear() === year &&
+      adminEmpSelectedDate.getMonth() === month &&
+      adminEmpSelectedDate.getDate() === d
+    );
+
+    let dotColor = "transparent";
+    if (hasAtt) {
+      dotColor = "#2E7D32"; // Green: Present
+    } else if (hasApprovedLeave) {
+      dotColor = "#F57C00"; // Orange: Leave
+    } else if (isWeekOff) {
+      dotColor = "#9E9E9E"; // Gray: Week Off
+    } else if (isPast) {
+      dotColor = "#D32F2F"; // Red: Absent
+    }
+
+    const cell = document.createElement("div");
+    cell.className = `calendar-cell ${isSelected ? "selected" : ""}`;
+    cell.innerHTML = `
+      <span>${d}</span>
+      <div class="calendar-dot" style="background: ${dotColor};"></div>
+    `;
+
+    cell.addEventListener("click", () => {
+      adminEmpSelectedDate = new Date(year, month, d);
+      renderAdminEmployeeCalendar();
+      renderAdminEmployeeDateRecords();
+    });
+
+    gridEl.appendChild(cell);
+  }
+}
+
+// Render Attendance Records for Selected Date
+function renderAdminEmployeeDateRecords() {
+  if (!adminDetailEmployeeId) return;
+
+  const recordsContainer = document.getElementById("admin-emp-date-records");
+  const dateTitle = document.getElementById("admin-emp-selected-date-title");
+  if (!recordsContainer) return;
+
+  const dateStr = adminEmpSelectedDate.toLocaleDateString([], { day: "2-digit", month: "short", year: "numeric" });
+  if (dateTitle) dateTitle.textContent = `Attendances for ${dateStr}`;
+
+  const selYear = adminEmpSelectedDate.getFullYear();
+  const selMonth = adminEmpSelectedDate.getMonth();
+  const selDay = adminEmpSelectedDate.getDate();
+
+  const dayAtts = attendances.filter(a => {
+    if (a.employeeId.toLowerCase() !== adminDetailEmployeeId.toLowerCase()) return false;
+    const d = new Date(a.timestamp);
+    return d.getFullYear() === selYear && d.getMonth() === selMonth && d.getDate() === selDay;
+  }).sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
+
+  if (dayAtts.length === 0) {
+    recordsContainer.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 16px; background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 12px;">No attendance records for this date.</div>`;
+    return;
+  }
+
+  const s = getMySettings(adminDetailEmployeeId);
+  const targetLat = s.targetLatitude || 0;
+  const targetLon = s.targetLongitude || 0;
+
+  recordsContainer.innerHTML = dayAtts.map(att => {
+    const timeStr = new Date(att.timestamp).toLocaleTimeString([], { hour: "2-digit", minute: "2-digit" });
+    const isClockIn = (att.type || "IN") === "IN";
+    const typeColor = isClockIn ? "#2E7D32" : "#D32F2F";
+    const hasPhoto = att.photoUri && att.photoUri.length > 20;
+
+    let distanceText = "";
+    if (att.latitude && att.longitude && targetLat !== 0 && targetLon !== 0) {
+      const dist = Math.round(calculateDistanceMeters(att.latitude, att.longitude, targetLat, targetLon));
+      distanceText = ` • ${dist}m from office`;
+    }
+
+    return `
+      <div style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 12px; padding: 14px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+        ${hasPhoto ?
+          `<img src="${att.photoUri}" style="width: 52px; height: 52px; border-radius: 10px; object-fit: cover; flex-shrink: 0;" alt="Selfie">` :
+          `<div style="width: 52px; height: 52px; border-radius: 10px; background: #EEEEEE; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;">📷</div>`
+        }
+        <div style="flex: 1; min-width: 0;">
+          <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
+            <span style="font-weight: 700; font-size: 1.05rem; color: ${typeColor};">${att.type || "IN"}</span>
+            <span style="font-size: 0.9rem; color: var(--text-secondary); font-weight: 500;">${timeStr}</span>
+          </div>
+          ${att.latitude ?
+            `<div style="font-size: 0.8rem; color: var(--text-secondary);">GPS: ${att.latitude.toFixed(4)}, ${att.longitude.toFixed(4)}${distanceText}</div>` :
+            `<div style="font-size: 0.8rem; color: var(--text-secondary);">Recorded via Web/Mobile</div>`
+          }
+        </div>
+      </div>
+    `;
+  }).join("");
 }
 
 const btnAdminDetailFillGps = document.getElementById("btn-admin-detail-fill-gps");
@@ -1593,7 +1810,10 @@ if (formAdminEmployeeDetail) {
       const db = getDb();
       await setDoc(doc(db, "settings", empId.toLowerCase()), payload, { merge: true });
       alert("Settings saved successfully!");
-      showView(viewAdmin);
+      if (modalAdminEmpSettings) modalAdminEmpSettings.classList.remove("open");
+
+      // Refresh the view details and dashboard
+      openAdminEmployeeDetail(empId);
       renderAdminDashboard();
     } catch (err) {
       alert("Failed to save settings: " + err.message);

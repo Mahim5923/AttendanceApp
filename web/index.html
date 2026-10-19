@@ -13,7 +13,7 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#FFFFFF">
   
-  <link rel="stylesheet" href="css/style.css?v=3.0">
+  <link rel="stylesheet" href="css/style.css?v=3.2">
 </head>
 <body>
 
@@ -302,76 +302,145 @@
     </div>
 
     <!-- ==========================================
-         11. ADMIN EMPLOYEE DETAIL / SETTINGS (100% Matches Android AdminEmployeeSettingsScreen.kt)
+         11. ADMIN EMPLOYEE DETAIL & ATTENDANCE (100% Matches Android AdminEmployeeDetailScreen.kt)
          ========================================== -->
     <div class="view" id="view-admin-employee-detail">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
-        <h1 style="font-size: 1.25rem; font-weight: 700;" id="admin-detail-title">Settings: Employee</h1>
-        <button class="btn-text" id="btn-back-from-admin-detail">Back</button>
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h1 style="font-size: 1.25rem; font-weight: 700;" id="admin-detail-title">Details: Employee</h1>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn-text" id="btn-toggle-admin-emp-settings" style="font-size: 0.9rem; padding: 6px 12px; border: 1.5px solid var(--primary); border-radius: 8px; font-weight: 600;">⚙️ Settings</button>
+          <button type="button" class="btn-text" id="btn-back-from-admin-detail">Back</button>
+        </div>
       </div>
 
-      <form id="form-admin-employee-detail" style="overflow-y: auto; flex: 1; padding-bottom: 24px;">
-        <input type="hidden" id="admin-detail-emp-id">
-
-        <div class="form-group">
-          <label class="field-label">Display Name</label>
-          <input type="text" id="admin-detail-display-name" class="outlined-field" required>
-        </div>
-
-        <div class="form-group">
-          <label class="field-label">Base Salary (₹)</label>
-          <input type="number" id="admin-detail-base-salary" class="outlined-field" required>
-        </div>
-
-        <div style="display: flex; gap: 10px; margin-bottom: 16px;">
-          <div style="flex: 1;">
-            <label class="field-label">Check-In Hour (24h)</label>
-            <input type="number" id="admin-detail-in-hour" class="outlined-field" min="0" max="23" required>
+      <div style="overflow-y: auto; flex: 1; padding-bottom: 24px;">
+        <!-- Employee Shift & Salary Info Card -->
+        <div style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 14px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+          <div style="font-size: 0.92rem; margin-bottom: 6px;">
+            <span style="color: var(--text-secondary);">Base Salary:</span>
+            <span style="font-weight: 600;" id="admin-detail-disp-salary">₹30,000</span>
           </div>
-          <div style="flex: 1;">
-            <label class="field-label">Min</label>
-            <input type="number" id="admin-detail-in-min" class="outlined-field" min="0" max="59" required>
+          <div style="font-size: 0.92rem; margin-bottom: 6px;">
+            <span style="color: var(--text-secondary);">Shift:</span>
+            <span style="font-weight: 600;" id="admin-detail-disp-shift">09:00 - 17:00</span>
+          </div>
+          <div style="font-size: 0.92rem;">
+            <span style="color: var(--text-secondary);">Week Offs:</span>
+            <span style="font-weight: 600;" id="admin-detail-disp-offs">Sunday, Saturday</span>
           </div>
         </div>
 
-        <div style="display: flex; gap: 10px; margin-bottom: 16px;">
-          <div style="flex: 1;">
-            <label class="field-label">Check-Out Hour (24h)</label>
-            <input type="number" id="admin-detail-out-hour" class="outlined-field" min="0" max="23" required>
-          </div>
-          <div style="flex: 1;">
-            <label class="field-label">Min</label>
-            <input type="number" id="admin-detail-out-min" class="outlined-field" min="0" max="59" required>
-          </div>
+        <!-- Attendance History Section -->
+        <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 12px; color: var(--text-primary);">Attendance History</h2>
+
+        <!-- Month Navigation -->
+        <div style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #F8F9FA; border-radius: 12px; margin-bottom: 12px;">
+          <button class="btn-text" id="btn-admin-emp-prev-month" style="font-size: 1.2rem; padding: 4px 10px;">◀</button>
+          <div id="disp-admin-emp-month-year" style="font-size: 1.05rem; font-weight: 700;">Month Year</div>
+          <button class="btn-text" id="btn-admin-emp-next-month" style="font-size: 1.2rem; padding: 4px 10px;">▶</button>
         </div>
 
-        <div class="form-group">
-          <label class="field-label" style="font-weight: 600; font-size: 0.95rem; margin-bottom: 10px;">Select Week Offs:</label>
-          <div style="display: flex; flex-direction: column; gap: 8px;">
-            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.95rem;"><input type="checkbox" id="chk-off-2" style="width: 18px; height: 18px;"> Monday</label>
-            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.95rem;"><input type="checkbox" id="chk-off-3" style="width: 18px; height: 18px;"> Tuesday</label>
-            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.95rem;"><input type="checkbox" id="chk-off-4" style="width: 18px; height: 18px;"> Wednesday</label>
-            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.95rem;"><input type="checkbox" id="chk-off-5" style="width: 18px; height: 18px;"> Thursday</label>
-            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.95rem;"><input type="checkbox" id="chk-off-6" style="width: 18px; height: 18px;"> Friday</label>
-            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.95rem;"><input type="checkbox" id="chk-off-7" style="width: 18px; height: 18px;"> Saturday</label>
-            <label style="display: flex; align-items: center; gap: 10px; font-size: 0.95rem;"><input type="checkbox" id="chk-off-1" style="width: 18px; height: 18px;"> Sunday</label>
-          </div>
+        <!-- Calendar Weekday Headers -->
+        <div class="calendar-header-row" style="margin-bottom: 8px;">
+          <div class="calendar-header-cell">S</div>
+          <div class="calendar-header-cell">M</div>
+          <div class="calendar-header-cell">T</div>
+          <div class="calendar-header-cell">W</div>
+          <div class="calendar-header-cell">T</div>
+          <div class="calendar-header-cell">F</div>
+          <div class="calendar-header-cell">S</div>
         </div>
 
-        <div class="form-group">
-          <label class="field-label" style="font-weight: 600; font-size: 0.95rem; margin-bottom: 8px;">Office Geofence Location</label>
-          <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-            <input type="number" step="any" id="admin-detail-lat" class="outlined-field" placeholder="Target Latitude">
-            <input type="number" step="any" id="admin-detail-lon" class="outlined-field" placeholder="Target Longitude">
-          </div>
-          <input type="number" id="admin-detail-radius" class="outlined-field" placeholder="Allowed Radius (Meters, default 100)" style="margin-bottom: 10px;">
-          <button type="button" class="btn-text" id="btn-admin-detail-fill-gps" style="border: 1px dashed var(--primary); border-radius: 8px; width: 100%;">
-            📍 Set to My Current GPS Location
-          </button>
+        <!-- Calendar Days Grid -->
+        <div id="admin-emp-calendar-grid" class="calendar-grid" style="margin-bottom: 12px;"></div>
+
+        <!-- Legend -->
+        <div style="display: flex; justify-content: space-around; font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 16px; padding: 8px; background: #FAFAFA; border-radius: 8px;">
+          <div style="display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #2E7D32;"></span> Present</div>
+          <div style="display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #D32F2F;"></span> Absent</div>
+          <div style="display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #F57C00;"></span> Leave</div>
+          <div style="display: flex; align-items: center; gap: 4px;"><span style="width: 8px; height: 8px; border-radius: 50%; background: #9E9E9E;"></span> Week Off</div>
         </div>
 
-        <button type="submit" class="btn-m3">Save Settings</button>
-      </form>
+        <div style="border-top: 1px solid #EEEEEE; margin: 12px 0;"></div>
+
+        <!-- Selected Date Header & Attendance List -->
+        <h3 id="admin-emp-selected-date-title" style="font-size: 1.02rem; font-weight: 700; margin-bottom: 10px; color: var(--text-primary);">Attendances for Date</h3>
+        <div id="admin-emp-date-records" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px;"></div>
+      </div>
+    </div>
+
+    <!-- Modal for Editing Employee Settings (from Details screen) -->
+    <div class="modal-overlay" id="modal-admin-employee-settings">
+      <div class="modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h2 style="font-size: 1.2rem; font-weight: 700;" id="modal-settings-title">Edit Settings</h2>
+          <button type="button" class="btn-text" id="btn-close-emp-settings-modal" style="font-size: 1.3rem;">✕</button>
+        </div>
+
+        <form id="form-admin-employee-detail">
+          <input type="hidden" id="admin-detail-emp-id">
+
+          <div class="form-group">
+            <label class="field-label">Display Name</label>
+            <input type="text" id="admin-detail-display-name" class="outlined-field" required>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label">Base Salary (₹)</label>
+            <input type="number" id="admin-detail-base-salary" class="outlined-field" required>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-bottom: 14px;">
+            <div style="flex: 1;">
+              <label class="field-label">Check-In Hour (24h)</label>
+              <input type="number" id="admin-detail-in-hour" class="outlined-field" min="0" max="23" required>
+            </div>
+            <div style="flex: 1;">
+              <label class="field-label">Min</label>
+              <input type="number" id="admin-detail-in-min" class="outlined-field" min="0" max="59" required>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-bottom: 14px;">
+            <div style="flex: 1;">
+              <label class="field-label">Check-Out Hour (24h)</label>
+              <input type="number" id="admin-detail-out-hour" class="outlined-field" min="0" max="23" required>
+            </div>
+            <div style="flex: 1;">
+              <label class="field-label">Min</label>
+              <input type="number" id="admin-detail-out-min" class="outlined-field" min="0" max="59" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label" style="font-weight: 600; font-size: 0.95rem; margin-bottom: 8px;">Select Week Offs:</label>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <label style="display: flex; align-items: center; gap: 10px; font-size: 0.92rem;"><input type="checkbox" id="chk-off-2" style="width: 18px; height: 18px;"> Monday</label>
+              <label style="display: flex; align-items: center; gap: 10px; font-size: 0.92rem;"><input type="checkbox" id="chk-off-3" style="width: 18px; height: 18px;"> Tuesday</label>
+              <label style="display: flex; align-items: center; gap: 10px; font-size: 0.92rem;"><input type="checkbox" id="chk-off-4" style="width: 18px; height: 18px;"> Wednesday</label>
+              <label style="display: flex; align-items: center; gap: 10px; font-size: 0.92rem;"><input type="checkbox" id="chk-off-5" style="width: 18px; height: 18px;"> Thursday</label>
+              <label style="display: flex; align-items: center; gap: 10px; font-size: 0.92rem;"><input type="checkbox" id="chk-off-6" style="width: 18px; height: 18px;"> Friday</label>
+              <label style="display: flex; align-items: center; gap: 10px; font-size: 0.92rem;"><input type="checkbox" id="chk-off-7" style="width: 18px; height: 18px;"> Saturday</label>
+              <label style="display: flex; align-items: center; gap: 10px; font-size: 0.92rem;"><input type="checkbox" id="chk-off-1" style="width: 18px; height: 18px;"> Sunday</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label" style="font-weight: 600; font-size: 0.95rem; margin-bottom: 8px;">Office Geofence Location</label>
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <input type="number" step="any" id="admin-detail-lat" class="outlined-field" placeholder="Target Latitude">
+              <input type="number" step="any" id="admin-detail-lon" class="outlined-field" placeholder="Target Longitude">
+            </div>
+            <input type="number" id="admin-detail-radius" class="outlined-field" placeholder="Allowed Radius (Meters, default 100)" style="margin-bottom: 10px;">
+            <button type="button" class="btn-text" id="btn-admin-detail-fill-gps" style="border: 1px dashed var(--primary); border-radius: 8px; width: 100%;">
+              📍 Set to My Current GPS Location
+            </button>
+          </div>
+
+          <button type="submit" class="btn-m3">Save Settings</button>
+        </form>
+      </div>
     </div>
 
     <!-- ==========================================
@@ -409,6 +478,6 @@
 
   </div>
 
-  <script type="module" src="js/app.js?v=3.0"></script>
+  <script type="module" src="js/app.js?v=3.2"></script>
 </body>
 </html>
