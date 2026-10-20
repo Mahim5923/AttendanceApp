@@ -14,8 +14,10 @@ import {
   deleteDoc,
   onSnapshot,
   query,
-  where
+  where,
+  getDocs
 } from "./firebase-config.js?v=2.1";
+import { dictionary } from "./i18n.js";
 
 // --- State Variables ---
 let currentUser = null;
@@ -32,6 +34,27 @@ let currentGpsLocation = null;
 let clockActionType = "IN";
 let capturedPhotoBase64 = null;
 let mediaStream = null;
+
+// ---------- Admin e‑mail handling ----------
+/** Holds all admin e‑mail addresses fetched from Firestore. */
+let adminEmails = [];
+
+/**
+ * Loads the admin e‑mail list from the Firestore collection `admins`.
+ * The collection should contain documents with a field `email` (string).
+ */
+async function loadAdminEmails() {
+  try {
+    const adminCol = collection(getDb(), "admins");
+    const snapshot = await getDocs(adminCol);
+    adminEmails = snapshot.docs
+      .map((d) => d.data().email?.toLowerCase())
+      .filter(Boolean);
+  } catch (e) {
+    console.warn("Failed to load admin e-mails:", e);
+    // Keep adminEmails empty – login will still work for normal users.
+  }
+}
 
 // Calendar State
 let calendarDate = new Date();
@@ -54,39 +77,23 @@ let unsubSettings = null;
 let unsubLeaves = null;
 let unsubMessages = null;
 
-// --- Language Dictionary (100% matches Android LanguageManager.kt) ---
-const dictionary = {
-  "Login": "à¤²à¥‰à¤— à¤‡à¤¨ à¤•à¤°à¥‡à¤‚",
-  "Email": "à¤ˆà¤®à¥‡à¤²",
-  "Password": "à¤ªà¤¾à¤¸à¤µà¤°à¥à¤¡",
-  "In": "à¤…à¤‚à¤¦à¤°",
-  "Out": "à¤¬à¤¾à¤¹à¤°",
-  "View My Attendance": "à¤®à¥‡à¤°à¥€ à¤‰à¤ªà¤¸à¥à¤¥à¤¿à¤¤à¤¿",
-  "Request Leave": "à¤›à¥à¤Ÿà¥à¤Ÿà¥€ à¤•à¤¾ à¤…à¤¨à¥à¤°à¥‹à¤§",
-  "Salary Calculator": "à¤µà¥‡à¤¤à¤¨ à¤•à¥ˆà¤²à¤•à¥à¤²à¥‡à¤Ÿà¤°",
-  "Logout": "à¤²à¥‰à¤— à¤†à¤‰à¤Ÿ",
-  "Edit Profile": "à¤ªà¥à¤°à¥‹à¤«à¤¼à¤¾à¤‡à¤² à¤¸à¤‚à¤ªà¤¾à¤¦à¤¿à¤¤ à¤•à¤°à¥‡à¤‚",
-  "Smart Attendance & Workforce Management": "à¤¸à¥à¤®à¤¾à¤°à¥à¤Ÿ à¤‰à¤ªà¤¸à¥à¤¥à¤¿à¤¤à¤¿ à¤à¤µà¤‚ à¤•à¤¾à¤°à¥à¤¯à¤¬à¤² à¤ªà¥à¤°à¤¬à¤‚à¤§à¤¨",
-  "My Attendance": "à¤®à¥‡à¤°à¥€ à¤‰à¤ªà¤¸à¥à¤¥à¤¿à¤¤à¤¿",
-  "Reason for leave": "à¤›à¥à¤Ÿà¥à¤Ÿà¥€ à¤•à¤¾ à¤•à¤¾à¤°à¤£",
-  "Submit Request": "à¤…à¤¨à¥à¤°à¥‹à¤§ à¤œà¤®à¤¾ à¤•à¤°à¥‡à¤‚",
-  "Salary Calculator Dashboard": "à¤µà¥‡à¤¤à¤¨ à¤•à¥ˆà¤²à¤•à¥à¤²à¥‡à¤Ÿà¤°",
-  "Export Monthly Report (.csv)": "à¤®à¤¾à¤¸à¤¿à¤• à¤°à¤¿à¤ªà¥‹à¤°à¥à¤Ÿ à¤¨à¤¿à¤°à¥à¤¯à¤¾à¤¤ à¤•à¤°à¥‡à¤‚ (.csv)",
-  "Chat with Admin": "à¤à¤¡à¤®à¤¿à¤¨ à¤¸à¥‡ à¤šà¥ˆà¤Ÿ à¤•à¤°à¥‡à¤‚",
-  "Save Profile": "à¤ªà¥à¤°à¥‹à¤«à¤¼à¤¾à¤‡à¤² à¤¸à¤¹à¥‡à¤œà¥‡à¤‚",
-  "Display Name": "à¤¦à¤¿à¤–à¤¨à¥‡ à¤µà¤¾à¤²à¤¾ à¤¨à¤¾à¤®",
-  "Admin Dashboard": "à¤à¤¡à¤®à¤¿à¤¨ à¤¡à¥ˆà¤¶à¤¬à¥‹à¤°à¥à¤¡",
-  "Employees": "à¤•à¤°à¥à¤®à¤šà¤¾à¤°à¥€",
-  "Leaves": "à¤›à¥à¤Ÿà¥à¤Ÿà¤¿à¤¯à¤¾à¤‚",
-  "Approve": "à¤®à¤‚à¤œà¥‚à¤°",
-  "Reject": "à¤…à¤¸à¥à¤µà¥€à¤•à¤¾à¤°"
-};
+// --- Language Dictionary imported from i18n.js (see js/i18n.js) ---
 
-function t(text) {
-  if (isHindi && dictionary[text]) {
-    return dictionary[text];
-  }
-  return text;
+function showSpinner() {
+  const overlay = document.getElementById('spinner-overlay');
+  if (overlay) overlay.style.display = 'flex';
+}
+
+function hideSpinner() {
+  const overlay = document.getElementById('spinner-overlay');
+  if (overlay) overlay.style.display = 'none';
+}
+
+let pendingListeners = 0;
+const TOTAL_FIRESTORE_LISTENERS = 5;
+function listenerResolved() {
+  pendingListeners--;
+  if (pendingListeners <= 0) hideSpinner();
 }
 
 // --- DOM References ---
@@ -362,10 +369,11 @@ async function performLogin() {
   // Resolve usernames to accounts
   let targetEmail = rawInput;
   const lowerInput = rawInput.toLowerCase();
+  // Resolve shortcuts or admin emails via fetched admin list
   if (lowerInput === "admin") {
-    targetEmail = "mahimsinhsingoria@gmail.com";
+    targetEmail = adminEmails.includes("mahimsinhsingoria@gmail.com") ? "mahimsinhsingoria@gmail.com" : rawInput;
   } else if (lowerInput === "nilesh" || lowerInput === "nknilesh") {
-    targetEmail = "nkjainnilesh@gmail.com";
+    targetEmail = adminEmails.includes("nkjainnilesh@gmail.com") ? "nkjainnilesh@gmail.com" : rawInput;
   }
 
   if (!targetEmail.includes("@")) {
@@ -415,6 +423,8 @@ async function performLogin() {
       msg = isHindi ? "बहुत सारे असफल प्रयास। कृपया थोड़ी देर बाद पुनः प्रयास करें।" : "Access temporarily disabled due to many failed attempts. Try again later.";
     } else if (errCode === "auth/user-disabled") {
       msg = isHindi ? "यह खाता अक्षम कर दिया गया है।" : "This account has been disabled.";
+      } else if (errCode === "auth/unauthorized-domain") {
+        msg = isHindi ? "अनधिकृत डोमेन। कृपया Firebase कंसोल में डोमेन जोड़ें।" : "Unauthorized domain. Please add the site domain in Firebase console.";
     }
 
     showAuthError(msg);
@@ -466,11 +476,13 @@ if (loginEmailInput) {
 }
 
 // --- Auth State Observer ---
-onAuthStateChanged(auth, (user) => {
+onAuthStateChanged(auth, async (user) => {
   currentUser = user;
   if (user) {
     const userEmail = (user.email || "").toLowerCase();
-    isAdmin = userEmail === "nkjainnilesh@gmail.com" || userEmail === "mahimsinhsingoria@gmail.com";
+    // Load admin emails from Firestore
+    await loadAdminEmails();
+    isAdmin = adminEmails.includes(userEmail);
     setupFirestoreListeners(userEmail);
     updateWelcomeText();
 
@@ -596,6 +608,8 @@ function detachListeners() {
 function setupFirestoreListeners(email) {
   detachListeners();
   let db = getDb();
+pendingListeners = TOTAL_FIRESTORE_LISTENERS;
+showSpinner();
 
   const handleListenerError = (err, context) => {
     console.error(`Firestore error in ${context}:`, err);
@@ -609,6 +623,7 @@ function setupFirestoreListeners(email) {
     // 1. Settings listener
     const settingsCol = collection(db, "settings");
     unsubSettings = onSnapshot(settingsCol, (snap) => {
+    listenerResolved();
       employeeSettingsList = snap.docs.map(d => ({ id: d.id, ...d.data() }));
       updateWelcomeText();
       refreshAdminViews();
@@ -618,6 +633,7 @@ function setupFirestoreListeners(email) {
     const attendancesCol = collection(db, "attendances");
     const attQuery = isAdmin ? attendancesCol : query(attendancesCol, where("employeeId", "==", email));
     unsubAttendances = onSnapshot(attQuery, (snap) => {
+    listenerResolved();
       attendances = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (b.timestamp || 0) - (a.timestamp || 0));
       renderAttendanceCalendar();
@@ -629,6 +645,7 @@ function setupFirestoreListeners(email) {
     const leavesCol = collection(db, "leaveRequests");
     const leaveQuery = isAdmin ? leavesCol : query(leavesCol, where("employeeId", "==", email));
     unsubLeaves = onSnapshot(leaveQuery, (snap) => {
+    listenerResolved();
       leaveRequests = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (b.requestedAtTimestamp || 0) - (a.requestedAtTimestamp || 0));
       renderLeaveRequests();
@@ -638,6 +655,7 @@ function setupFirestoreListeners(email) {
     // 4. Messages listener
     const messagesCol = collection(db, "messages");
     unsubMessages = onSnapshot(messagesCol, (snap) => {
+    listenerResolved();
       chatMessages = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
       renderChatMessages();
@@ -646,6 +664,7 @@ function setupFirestoreListeners(email) {
     // 5. Branches listener (Realtime updates for all branches)
     const branchesCol = collection(db, "branches");
     unsubBranches = onSnapshot(branchesCol, (snap) => {
+    listenerResolved();
       branchesList = snap.docs.map(d => ({ id: d.id, ...d.data() }))
         .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
       renderAdminBranchesList();
