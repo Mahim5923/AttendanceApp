@@ -156,9 +156,9 @@ function updateLiveClock() {
 
   const now = new Date();
   const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const dayNamesHi = ["à¤°à¤µà¤¿à¤µà¤¾à¤°", "à¤¸à¥‹à¤®à¤µà¤¾à¤°", "à¤®à¤‚à¤—à¤²à¤µà¤¾à¤°", "à¤¬à¥à¤§à¤µà¤¾à¤°", "à¤—à¥à¤°à¥à¤µà¤¾à¤°", "à¤¶à¥à¤•à¥à¤°à¤µà¤¾à¤°", "à¤¶à¤¨à¤¿à¤µà¤¾à¤°"];
+  const dayNamesHi = ["रविवार", "सोमवार", "मंगलवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const monthNamesHi = ["à¤œà¤¨à¤µà¤°à¥€", "à¤«à¤¼à¤°à¤µà¤°à¥€", "à¤®à¤¾à¤°à¥à¤š", "à¤…à¤ªà¥à¤°à¥ˆà¤²", "à¤®à¤ˆ", "à¤œà¥‚à¤¨", "à¤œà¥à¤²à¤¾à¤ˆ", "à¤…à¤—à¤¸à¥à¤¤", "à¤¸à¤¿à¤¤à¤‚à¤¬à¤°", "à¤…à¤•à¥à¤Ÿà¥‚à¤¬à¤°", "à¤¨à¤µà¤‚à¤¬à¤°", "à¤¦à¤¿à¤¸à¤‚à¤¬à¤°"];
+  const monthNamesHi = ["जनवरी", "फ़रवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई", "अगस्त", "सितंबर", "अक्टूबर", "नवंबर", "दिसंबर"];
 
   const dayStr = isHindi ? dayNamesHi[now.getDay()] : dayNames[now.getDay()];
   const dateNum = String(now.getDate()).padStart(2, "0");
@@ -1207,11 +1207,11 @@ function renderSalaryReport() {
 const btnExportCsv = document.getElementById("btn-export-csv-sal");
 if (btnExportCsv) {
   btnExportCsv.addEventListener("click", () => {
-    exportMonthlyCsv();
+    exportSalaryReportCsv();
   });
 }
 
-function exportMonthlyCsv(targetYear, targetMonth) {
+function exportSalaryReportCsv() {
   const employees = Array.from(new Set([
     ...employeeSettingsList.map(s => s.employeeId.toLowerCase()),
     ...attendances.map(a => a.employeeId.toLowerCase())
