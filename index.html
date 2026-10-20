@@ -14,7 +14,7 @@
   <link rel="manifest" href="manifest.json">
   <meta name="theme-color" content="#FFFFFF">
 
-  <link rel="stylesheet" href="css/style.css?v=3.5">
+  <link rel="stylesheet" href="css/style.css?v=3.6">
 
   <!-- Interactive Map (Leaflet & Google Maps style Geofence Picker) -->
   <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
@@ -512,11 +512,10 @@
             </label>
 
             <!-- Search Address / Places -->
-            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-              <input type="text" id="admin-map-search-input" class="outlined-field"
-                placeholder="Search address, landmark or office..." style="margin-bottom: 0; flex: 1;">
-              <button type="button" class="btn-m3" id="btn-admin-map-search"
-                style="margin-bottom: 0; padding: 0 16px; white-space: nowrap; height: 46px; font-size: 0.88rem;">
+            <div class="map-search-row">
+              <input type="text" id="admin-map-search-input" class="outlined-field map-search-input"
+                placeholder="Search address, landmark or office...">
+              <button type="button" class="btn-m3 map-search-btn" id="btn-admin-map-search">
                 Search
               </button>
             </div>
@@ -651,12 +650,11 @@
               </button>
             </div>
 
-                        <!-- Search Address / Places for Branch Map -->
-            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
-              <input type="text" id="admin-branch-map-search-input" class="outlined-field"
-                placeholder="Search address, landmark or city..." style="margin-bottom: 0; flex: 1;">
-              <button type="button" class="btn-m3" id="btn-admin-branch-map-search"
-                style="margin-bottom: 0; padding: 0 16px; white-space: nowrap; height: 46px; font-size: 0.88rem;">
+            <!-- Search Address / Places for Branch Map -->
+            <div class="map-search-row">
+              <input type="text" id="admin-branch-map-search-input" class="outlined-field map-search-input"
+                placeholder="Search address, landmark or city...">
+              <button type="button" class="btn-m3 map-search-btn" id="btn-admin-branch-map-search">
                 Search
               </button>
             </div>
