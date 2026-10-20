@@ -1,4 +1,4 @@
-const CACHE_NAME = 'attendpro-v6';
+const CACHE_NAME = 'attendpro-v7';
 const ASSETS = [
   './',
   './index.html',
@@ -32,6 +32,7 @@ self.addEventListener('fetch', (e) => {
       e.request.url.includes('firebase') || 
       e.request.url.includes('googleapis.com') ||
       e.request.url.includes('app.js') ||
+      e.request.url.includes('i18n.js') ||
       e.request.url.includes('firebase-config.js')) {
     return; // Always fetch fresh over network
   }

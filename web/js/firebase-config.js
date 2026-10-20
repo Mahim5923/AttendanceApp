@@ -15,6 +15,7 @@ import {
   updateDoc, 
   deleteDoc,
   getDoc,
+  getDocs,
   onSnapshot, 
   query, 
   where 
@@ -73,6 +74,7 @@ export {
   updateDoc,
   deleteDoc,
   getDoc,
+  getDocs,
   onSnapshot,
   query,
   where,

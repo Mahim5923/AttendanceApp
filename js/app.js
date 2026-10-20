@@ -19,6 +19,14 @@ import {
 } from "./firebase-config.js?v=2.1";
 import { dictionary } from "./i18n.js";
 
+// --- Language Helper ---
+function t(text) {
+  if (isHindi && dictionary && dictionary[text]) {
+    return dictionary[text];
+  }
+  return text;
+}
+
 // --- State Variables ---
 let currentUser = null;
 let isAdmin = false;
@@ -36,8 +44,13 @@ let capturedPhotoBase64 = null;
 let mediaStream = null;
 
 // ---------- Admin e‑mail handling ----------
-/** Holds all admin e‑mail addresses fetched from Firestore. */
-let adminEmails = [];
+const DEFAULT_ADMIN_EMAILS = [
+  "mahimsinhsingoria@gmail.com",
+  "nkjainnilesh@gmail.com"
+];
+
+/** Holds all admin e‑mail addresses fetched from Firestore plus defaults. */
+let adminEmails = [...DEFAULT_ADMIN_EMAILS];
 
 /**
  * Loads the admin e‑mail list from the Firestore collection `admins`.
@@ -47,12 +60,13 @@ async function loadAdminEmails() {
   try {
     const adminCol = collection(getDb(), "admins");
     const snapshot = await getDocs(adminCol);
-    adminEmails = snapshot.docs
+    const fetched = snapshot.docs
       .map((d) => d.data().email?.toLowerCase())
       .filter(Boolean);
+    adminEmails = Array.from(new Set([...DEFAULT_ADMIN_EMAILS, ...fetched]));
   } catch (e) {
     console.warn("Failed to load admin e-mails:", e);
-    // Keep adminEmails empty – login will still work for normal users.
+    adminEmails = [...DEFAULT_ADMIN_EMAILS];
   }
 }
 
@@ -287,7 +301,7 @@ const btnLangToggle = document.getElementById("btn-lang-toggle");
 if (btnLangToggle) {
   btnLangToggle.addEventListener("click", () => {
     isHindi = !isHindi;
-    btnLangToggle.textContent = isHindi ? "English" : "à¤¹à¤¿à¤‚à¤¦à¥€";
+    btnLangToggle.textContent = isHindi ? "English" : "हिंदी";
     applyTranslations();
   });
 }
@@ -301,7 +315,7 @@ function applyTranslations() {
 
   const txtLoginBtn = document.getElementById("txt-login-btn");
   if (txtLoginBtn) {
-    txtLoginBtn.textContent = isHindi ? "à¤²à¥‰à¤— à¤‡à¤¨ à¤•à¤°à¥‡à¤‚" : "Login";
+    txtLoginBtn.textContent = isHindi ? "लॉग इन करें" : "Login";
   }
 
   const btnClockIn = document.getElementById("btn-clock-in");
@@ -369,11 +383,11 @@ async function performLogin() {
   // Resolve usernames to accounts
   let targetEmail = rawInput;
   const lowerInput = rawInput.toLowerCase();
-  // Resolve shortcuts or admin emails via fetched admin list
+  // Resolve shortcuts or admin emails
   if (lowerInput === "admin") {
-    targetEmail = adminEmails.includes("mahimsinhsingoria@gmail.com") ? "mahimsinhsingoria@gmail.com" : rawInput;
+    targetEmail = "mahimsinhsingoria@gmail.com";
   } else if (lowerInput === "nilesh" || lowerInput === "nknilesh") {
-    targetEmail = adminEmails.includes("nkjainnilesh@gmail.com") ? "nkjainnilesh@gmail.com" : rawInput;
+    targetEmail = "nkjainnilesh@gmail.com";
   }
 
   if (!targetEmail.includes("@")) {
@@ -482,7 +496,7 @@ onAuthStateChanged(auth, async (user) => {
     const userEmail = (user.email || "").toLowerCase();
     // Load admin emails from Firestore
     await loadAdminEmails();
-    isAdmin = adminEmails.includes(userEmail);
+    isAdmin = adminEmails.includes(userEmail) || DEFAULT_ADMIN_EMAILS.includes(userEmail);
     setupFirestoreListeners(userEmail);
     updateWelcomeText();
 
