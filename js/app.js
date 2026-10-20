@@ -179,8 +179,8 @@ function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
   const dLat = (lat2 - lat1) * Math.PI / 180;
   const dLon = (lon2 - lon1) * Math.PI / 180;
   const a = Math.sin(dLat / 2) * Math.sin(dLat / 2) +
-            Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-            Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+    Math.sin(dLon / 2) * Math.sin(dLon / 2);
   const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
   return R * c;
 }
@@ -205,8 +205,8 @@ function getMySettings(empEmail = null) {
   // If assigned to a branch, inherit shift times and geofence location from the branch!
   // Note: weekOffs, baseSalary, and displayName remain individual to the employee!
   if (raw.branch) {
-    const branch = branchesList.find(b => 
-      (b.name && b.name.toLowerCase() === raw.branch.toLowerCase()) || 
+    const branch = branchesList.find(b =>
+      (b.name && b.name.toLowerCase() === raw.branch.toLowerCase()) ||
       (b.id && b.id.toLowerCase() === raw.branch.toLowerCase())
     );
     if (branch) {
@@ -240,8 +240,8 @@ function validateAttendance(type) {
     if (a.employeeId.toLowerCase() !== email || a.type !== type) return false;
     const d = new Date(a.timestamp);
     return d.getFullYear() === now.getFullYear() &&
-           d.getMonth() === now.getMonth() &&
-           d.getDate() === now.getDate();
+      d.getMonth() === now.getMonth() &&
+      d.getDate() === now.getDate();
   });
 
   if (hasMarkedToday) {
@@ -355,24 +355,27 @@ async function performLogin() {
   const txtBtn = document.getElementById("txt-login-btn");
 
   if (!rawInput || !pass) {
-    showAuthError(isHindi ? "à¤•à¥ƒà¤ªà¤¯à¤¾ à¤ˆà¤®à¥‡à¤² à¤”à¤° à¤ªà¤¾à¤¸à¤µà¤°à¥à¤¡ à¤¦à¥‹à¤¨à¥‹à¤‚ à¤¦à¤°à¥à¤œ à¤•à¤°à¥‡à¤‚à¥¤" : "Please enter both email and password.");
+    showAuthError(isHindi ? "कृपया ईमेल और पासवर्ड दोनों दर्ज करें।" : "Please enter both email and password.");
     return;
   }
 
-  // Resolve 'admin' username to the admin account
+  // Resolve usernames to accounts
   let targetEmail = rawInput;
-  if (rawInput.toLowerCase() === "admin") {
+  const lowerInput = rawInput.toLowerCase();
+  if (lowerInput === "admin") {
     targetEmail = "mahimsinhsingoria@gmail.com";
+  } else if (lowerInput === "nilesh" || lowerInput === "nknilesh") {
+    targetEmail = "nkjainnilesh@gmail.com";
   }
 
   if (!targetEmail.includes("@")) {
-    showAuthError(isHindi ? "à¤•à¥ƒà¤ªà¤¯à¤¾ à¤à¤• à¤®à¤¾à¤¨à¥à¤¯ à¤ˆà¤®à¥‡à¤² à¤¦à¤°à¥à¤œ à¤•à¤°à¥‡à¤‚ à¤¯à¤¾ 'admin' à¤•à¤¾ à¤‰à¤ªà¤¯à¥‹à¤— à¤•à¤°à¥‡à¤‚à¥¤" : "Please enter a valid email address (e.g. name@example.com) or 'admin'.");
+    showAuthError(isHindi ? "कृपया एक मान्य ईमेल दर्ज करें या 'admin' का उपयोग करें।" : "Please enter a valid email address (e.g. name@example.com) or 'admin'.");
     return;
   }
 
   hideAuthBanners();
   if (btn) btn.disabled = true;
-  if (txtBtn) txtBtn.textContent = isHindi ? "à¤¸à¤¤à¥à¤¯à¤¾à¤ªà¤¿à¤¤ à¤¹à¥‹ à¤°à¤¹à¤¾ à¤¹à¥ˆ..." : "Authenticating...";
+  if (txtBtn) txtBtn.textContent = isHindi ? "सत्यापित हो रहा है..." : "Authenticating...";
 
   try {
     // 1. Attempt standard Firebase Auth sign-in
@@ -382,35 +385,36 @@ async function performLogin() {
     const errCode = err.code || "";
     const errMsg = err.message || "";
 
-    const isCredentialError = 
-      errCode === "auth/invalid-credential" || 
-      errCode === "auth/user-not-found" || 
+    const isCredentialError =
+      errCode === "auth/invalid-credential" ||
+      errCode === "auth/user-not-found" ||
       errMsg.includes("INVALID_LOGIN_CREDENTIALS");
 
     // Handle specific error codes - refuse access if account does not exist or credentials fail
-    let msg = errMsg || (isHindi ? "à¤²à¥‰à¤—à¤¿à¤¨ à¤µà¤¿à¤«à¤² à¤°à¤¹à¤¾à¥¤" : "Login failed.");
+    let msg = errMsg || (isHindi ? "लॉगिन विफल रहा।" : "Login failed.");
     if (errCode === "auth/user-not-found") {
-      msg = isHindi 
-        ? "à¤–à¤¾à¤¤à¤¾ à¤®à¥Œà¤œà¥‚à¤¦ à¤¨à¤¹à¥€à¤‚ à¤¹à¥ˆà¥¤ à¤ªà¤¹à¥à¤‚à¤š à¤…à¤¸à¥à¤µà¥€à¤•à¥ƒà¤¤à¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤µà¥à¤¯à¤µà¤¸à¥à¤¥à¤¾à¤ªà¤• à¤¸à¥‡ à¤¸à¤‚à¤ªà¤°à¥à¤• à¤•à¤°à¥‡à¤‚à¥¤" 
+      msg = isHindi
+        ? "खाता मौजूद नहीं है। पहुँच अस्वीकृत। कृपया व्यवस्थापक से संपर्क करें।"
         : "Account does not exist. Access denied. Please contact your administrator.";
     } else if (errCode === "auth/wrong-password") {
-      msg = isHindi ? "à¤—à¤²à¤¤ à¤ªà¤¾à¤¸à¤µà¤°à¥à¤¡à¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤ªà¥à¤¨à¤ƒ à¤ªà¥à¤°à¤¯à¤¾à¤¸ à¤•à¤°à¥‡à¤‚à¥¤" : "Incorrect password. Please try again.";
+      msg = isHindi ? "गलत पासवर्ड। कृपया पुनः प्रयास करें।" : "Incorrect password. Please try again.";
     } else if (isCredentialError) {
-      if (targetEmail.toLowerCase() === "mahimsinhsingoria@gmail.com") {
-        msg = isHindi ? "à¤à¤¡à¤®à¤¿à¤¨ à¤ªà¤¾à¤¸à¤µà¤°à¥à¤¡ à¤—à¤²à¤¤ à¤¹à¥ˆà¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤ªà¥à¤¨à¤ƒ à¤ªà¥à¤°à¤¯à¤¾à¤¸ à¤•à¤°à¥‡à¤‚à¥¤" : "Incorrect admin password. Please try again.";
+      const emailLower = targetEmail.toLowerCase();
+      if (emailLower === "mahimsinhsingoria@gmail.com" || emailLower === "nkjainnilesh@gmail.com") {
+        msg = isHindi ? "एडमिन पासवर्ड गलत है। कृपया पुनः प्रयास करें।" : "Incorrect admin password. Please try again.";
       } else {
-        msg = isHindi 
-          ? "à¤–à¤¾à¤¤à¤¾ à¤®à¥Œà¤œà¥‚à¤¦ à¤¨à¤¹à¥€à¤‚ à¤¹à¥ˆ à¤¯à¤¾ à¤…à¤®à¤¾à¤¨à¥à¤¯ à¤µà¤¿à¤µà¤°à¤£à¥¤ à¤ªà¤¹à¥à¤‚à¤š à¤…à¤¸à¥à¤µà¥€à¤•à¥ƒà¤¤à¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤µà¥à¤¯à¤µà¤¸à¥à¤¥à¤¾à¤ªà¤• à¤¸à¥‡ à¤¸à¤‚à¤ªà¤°à¥à¤• à¤•à¤°à¥‡à¤‚à¥¤" 
+        msg = isHindi
+          ? "खाता मौजूद नहीं है या अमान्य विवरण। पहुँच अस्वीकृत। कृपया व्यवस्थापक से संपर्क करें।"
           : "Account does not exist or invalid credentials. Access denied. Please contact your administrator.";
       }
     } else if (errCode === "auth/invalid-email") {
-      msg = isHindi ? "à¤…à¤®à¤¾à¤¨à¥à¤¯ à¤ˆà¤®à¥‡à¤² à¤ªà¤¤à¤¾à¥¤" : "Invalid email format. Please check your email.";
+      msg = isHindi ? "अमान्य ईमेल पता।" : "Invalid email format. Please check your email.";
     } else if (errCode === "auth/network-request-failed") {
-      msg = isHindi ? "à¤¨à¥‡à¤Ÿà¤µà¤°à¥à¤• à¤¤à¥à¤°à¥à¤Ÿà¤¿à¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤‡à¤‚à¤Ÿà¤°à¤¨à¥‡à¤Ÿ à¤•à¤¨à¥‡à¤•à¥à¤¶à¤¨ à¤œà¤¾à¤‚à¤šà¥‡à¤‚à¥¤" : "Network error. Please check your internet connection.";
+      msg = isHindi ? "नेटवर्क त्रुटि। कृपया इंटरनेट कनेक्शन जांचें।" : "Network error. Please check your internet connection.";
     } else if (errCode === "auth/too-many-requests") {
-      msg = isHindi ? "à¤¬à¤¹à¥à¤¤ à¤¸à¤¾à¤°à¥‡ à¤…à¤¸à¤«à¤² à¤ªà¥à¤°à¤¯à¤¾à¤¸à¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤¥à¥‹à¤¡à¤¼à¥€ à¤¦à¥‡à¤° à¤¬à¤¾à¤¦ à¤ªà¥à¤¨à¤ƒ à¤ªà¥à¤°à¤¯à¤¾à¤¸ à¤•à¤°à¥‡à¤‚à¥¤" : "Access temporarily disabled due to many failed attempts. Try again later.";
+      msg = isHindi ? "बहुत सारे असफल प्रयास। कृपया थोड़ी देर बाद पुनः प्रयास करें।" : "Access temporarily disabled due to many failed attempts. Try again later.";
     } else if (errCode === "auth/user-disabled") {
-      msg = isHindi ? "à¤¯à¤¹ à¤–à¤¾à¤¤à¤¾ à¤…à¤•à¥à¤·à¤® à¤•à¤° à¤¦à¤¿à¤¯à¤¾ à¤—à¤¯à¤¾ à¤¹à¥ˆà¥¤" : "This account has been disabled.";
+      msg = isHindi ? "यह खाता अक्षम कर दिया गया है।" : "This account has been disabled.";
     }
 
     showAuthError(msg);
@@ -466,7 +470,7 @@ onAuthStateChanged(auth, (user) => {
   currentUser = user;
   if (user) {
     const userEmail = (user.email || "").toLowerCase();
-    isAdmin = userEmail === "admin" || userEmail === "mahimsinhsingoria@gmail.com";
+    isAdmin = userEmail === "nkjainnilesh@gmail.com" || userEmail === "mahimsinhsingoria@gmail.com";
     setupFirestoreListeners(userEmail);
     updateWelcomeText();
 
@@ -904,7 +908,7 @@ function renderAttendanceCalendar() {
   const userLeaves = leaveRequests.filter(l => l.employeeId.toLowerCase() === userEmail && l.status === "APPROVED");
 
   const today = new Date();
-  today.setHours(0,0,0,0);
+  today.setHours(0, 0, 0, 0);
 
   for (let day = 1; day <= totalDays; day++) {
     const d = new Date(year, month, day);
@@ -936,8 +940,8 @@ function renderAttendanceCalendar() {
     }
 
     const isSelected = selectedCalendarDate.getFullYear() === year &&
-                       selectedCalendarDate.getMonth() === month &&
-                       selectedCalendarDate.getDate() === day;
+      selectedCalendarDate.getMonth() === month &&
+      selectedCalendarDate.getDate() === day;
 
     html += `
       <div class="cal-day-cell" data-day="${day}" style="padding: 4px 0; cursor: pointer; border-radius: 8px; ${isSelected ? 'background: #FFEBEE;' : ''}">
@@ -965,8 +969,8 @@ function renderAttendanceCalendar() {
   const dayAtts = userAtts.filter(a => {
     const d = new Date(a.timestamp);
     return d.getFullYear() === selectedCalendarDate.getFullYear() &&
-           d.getMonth() === selectedCalendarDate.getMonth() &&
-           d.getDate() === selectedCalendarDate.getDate();
+      d.getMonth() === selectedCalendarDate.getMonth() &&
+      d.getDate() === selectedCalendarDate.getDate();
   });
 
   if (dayAtts.length === 0) {
@@ -1291,8 +1295,8 @@ function renderChatMessages() {
   const relevant = chatMessages.filter(m => {
     if (isAdmin) {
       if (activeChatPartner) {
-        return (m.senderId === activeChatPartner && m.receiverId === currentEmail) ||
-               (m.senderId === currentEmail && m.receiverId === activeChatPartner);
+        return (m.senderId === activeChatPartner && (m.receiverId === currentEmail || m.receiverId === "admin")) ||
+          (m.senderId === currentEmail && m.receiverId === activeChatPartner);
       }
       return true;
     }
@@ -1645,9 +1649,9 @@ function renderAdminDashboard() {
     return `
       <div class="emp-card-row" data-id="${empId}" style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
         ${photo ?
-          `<img src="${photo}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-right: 16px; flex-shrink: 0;" alt="Avatar">` :
-          `<div style="width: 50px; height: 50px; border-radius: 50%; background: #49454F; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; margin-right: 16px; flex-shrink: 0;">${initial}</div>`
-        }
+        `<img src="${photo}" style="width: 50px; height: 50px; border-radius: 50%; object-fit: cover; margin-right: 16px; flex-shrink: 0;" alt="Avatar">` :
+        `<div style="width: 50px; height: 50px; border-radius: 50%; background: #49454F; color: #FFFFFF; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 1.2rem; margin-right: 16px; flex-shrink: 0;">${initial}</div>`
+      }
         <div style="flex: 1; min-width: 0;">
           <div style="font-weight: 600; font-size: 1rem; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${displayName}</div>
           ${s.displayName && s.displayName.trim().length > 0 ? `<div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${empId}</div>` : ''}
@@ -1734,7 +1738,7 @@ function openAdminEmployeeDetail(employeeId) {
         const foundBranch = branchesList.find(b => b.name.toLowerCase() === selectedName.toLowerCase());
         if (foundBranch) {
           if (branchHint) {
-            branchHint.textContent = `â„¹ï¸ Shift times (${String(foundBranch.checkInTimeHours).padStart(2,'0')}:${String(foundBranch.checkInTimeMinutes).padStart(2,'0')} - ${String(foundBranch.checkOutTimeHours).padStart(2,'0')}:${String(foundBranch.checkOutTimeMinutes).padStart(2,'0')}) and office location will be synced from ${foundBranch.name}. Week offs and salary remain individual.`;
+            branchHint.textContent = `â„¹ï¸ Shift times (${String(foundBranch.checkInTimeHours).padStart(2, '0')}:${String(foundBranch.checkInTimeMinutes).padStart(2, '0')} - ${String(foundBranch.checkOutTimeHours).padStart(2, '0')}:${String(foundBranch.checkOutTimeMinutes).padStart(2, '0')}) and office location will be synced from ${foundBranch.name}. Week offs and salary remain individual.`;
             branchHint.style.display = "block";
           }
           document.getElementById("admin-detail-in-hour").value = foundBranch.checkInTimeHours ?? 9;
@@ -1947,18 +1951,18 @@ function renderAdminEmployeeDateRecords() {
     return `
       <div style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 12px; padding: 14px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
         ${hasPhoto ?
-          `<img src="${att.photoUri}" style="width: 52px; height: 52px; border-radius: 10px; object-fit: cover; flex-shrink: 0;" alt="Selfie">` :
-          `<div style="width: 52px; height: 52px; border-radius: 10px; background: #EEEEEE; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); flex-shrink: 0;">No Pic</div>`
-        }
+        `<img src="${att.photoUri}" style="width: 52px; height: 52px; border-radius: 10px; object-fit: cover; flex-shrink: 0;" alt="Selfie">` :
+        `<div style="width: 52px; height: 52px; border-radius: 10px; background: #EEEEEE; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); flex-shrink: 0;">No Pic</div>`
+      }
         <div style="flex: 1; min-width: 0;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
             <span style="font-weight: 700; font-size: 1.05rem; color: ${typeColor};">${att.type || "IN"}</span>
             <span style="font-size: 0.9rem; color: var(--text-secondary); font-weight: 500;">${timeStr}</span>
           </div>
           ${att.latitude ?
-            `<div style="font-size: 0.8rem; color: var(--text-secondary);">GPS: ${att.latitude.toFixed(4)}, ${att.longitude.toFixed(4)}${distanceText}</div>` :
-            `<div style="font-size: 0.8rem; color: var(--text-secondary);">Recorded via Web/Mobile</div>`
-          }
+        `<div style="font-size: 0.8rem; color: var(--text-secondary);">GPS: ${att.latitude.toFixed(4)}, ${att.longitude.toFixed(4)}${distanceText}</div>` :
+        `<div style="font-size: 0.8rem; color: var(--text-secondary);">Recorded via Web/Mobile</div>`
+      }
         </div>
       </div>
     `;

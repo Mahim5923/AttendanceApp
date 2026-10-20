@@ -282,7 +282,7 @@ class FirebaseDataRepositoryImpl(private val context: Context) : DataRepository 
     
     override fun login(username: String): Boolean {
         currentLoggedInUser = username
-        isAdmin = username.lowercase() == "admin" || username.lowercase() == "mahimsinhsingoria@gmail.com"
+        isAdmin = username.lowercase() == "nkjainnilesh@gmail.com" || username.lowercase() == "mahimsinhsingoria@gmail.com"
         prefs.edit()
             .putString("currentLoggedInUser", currentLoggedInUser)
             .putBoolean("isAdmin", isAdmin)
