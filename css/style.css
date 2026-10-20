@@ -381,21 +381,6 @@ body {
   box-sizing: border-box;
 }
 
-.calendar-header-row {
-  display: grid !important;
-  grid-template-columns: repeat(7, 1fr) !important;
-  text-align: center;
-  margin-bottom: 8px;
-}
-
-.calendar-header-cell {
-  font-weight: 700;
-  color: #9E9E9E;
-  font-size: 0.75rem;
-  padding: 4px 0;
-  text-align: center;
-}
-
 /* Map & Location Geofence Styles */
 #admin-map-view {
   width: 100%;
@@ -422,5 +407,53 @@ body {
 .custom-map-pin:hover svg {
   transform: scale(1.15) translateY(-2px);
 }
+
+/* Branch Filter Pills (Material 3 Red Theme) */
+.branch-filter-pill {
+  padding: 6px 14px;
+  font-size: 0.8rem;
+  border-radius: 20px;
+  white-space: nowrap;
+  transition: all 0.2s ease;
+  background-color: #F5F5F5;
+  color: #424242;
+  font-weight: 500;
+  border: 1px solid #E0E0E0;
+  cursor: pointer;
+  font-family: var(--font-main);
+}
+
+.branch-filter-pill:hover {
+  background-color: #EEEEEE;
+}
+
+.branch-filter-pill.active-filter {
+  background-color: var(--primary) !important;
+  color: #FFFFFF !important;
+  font-weight: 700 !important;
+  border-color: var(--primary-hover) !important;
+  box-shadow: 0 2px 6px rgba(229, 57, 53, 0.3) !important;
+}
+
+/* Branch Badge (Material 3 Red Theme) */
+.branch-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  background-color: #FFEBEE;
+  color: #C62828;
+  border: 1px solid #FFCDD2;
+  font-size: 0.74rem;
+  padding: 2px 8px;
+  border-radius: 6px;
+  font-weight: 600;
+}
+
+.branch-badge.unassigned {
+  background-color: #F5F5F5;
+  color: #757575;
+  border: 1px solid #E0E0E0;
+}
+
 
 

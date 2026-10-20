@@ -28,6 +28,7 @@ private class FakeDataRepository : DataRepository {
   override val leaveRequests: StateFlow<List<LeaveRequest>> = MutableStateFlow(emptyList())
   override val messages: StateFlow<List<ChatMessage>> = MutableStateFlow(emptyList())
   override val appConfig: StateFlow<AppConfig?> = MutableStateFlow(null)
+  override val branches: StateFlow<List<com.example.attendanceapp.data.Branch>> = MutableStateFlow(emptyList())
   override var currentLoggedInUser: String? = null
   override var isAdmin: Boolean = false
 
@@ -41,4 +42,7 @@ private class FakeDataRepository : DataRepository {
   override suspend fun updateLeaveRequestStatus(id: String, status: LeaveStatus) {}
   override suspend fun sendMessage(message: ChatMessage) {}
   override suspend fun markMessageAsRead(messageId: String) {}
+  override suspend fun saveBranch(branch: com.example.attendanceapp.data.Branch) {}
+  override suspend fun deleteBranch(branchId: String) {}
 }
+

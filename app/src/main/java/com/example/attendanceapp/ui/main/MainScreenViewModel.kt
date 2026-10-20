@@ -48,6 +48,7 @@ class MainScreenViewModel(private val dataRepository: DataRepository) : ViewMode
 
     val messages: StateFlow<List<com.example.attendanceapp.data.ChatMessage>> = dataRepository.messages
     val appConfig: StateFlow<com.example.attendanceapp.data.AppConfig?> = dataRepository.appConfig
+    val branches: StateFlow<List<com.example.attendanceapp.data.Branch>> = dataRepository.branches
     
     suspend fun sendMessage(message: com.example.attendanceapp.data.ChatMessage) {
         dataRepository.sendMessage(message)
@@ -56,6 +57,26 @@ class MainScreenViewModel(private val dataRepository: DataRepository) : ViewMode
     fun markMessageAsRead(messageId: String) {
         viewModelScope.launch {
             dataRepository.markMessageAsRead(messageId)
+        }
+    }
+
+    fun saveBranch(branch: com.example.attendanceapp.data.Branch) {
+        viewModelScope.launch {
+            try {
+                dataRepository.saveBranch(branch)
+            } catch (e: Exception) {
+                Log.e("Firebase", "Error saving branch", e)
+            }
+        }
+    }
+
+    fun deleteBranch(branchId: String) {
+        viewModelScope.launch {
+            try {
+                dataRepository.deleteBranch(branchId)
+            } catch (e: Exception) {
+                Log.e("Firebase", "Error deleting branch", e)
+            }
         }
     }
 

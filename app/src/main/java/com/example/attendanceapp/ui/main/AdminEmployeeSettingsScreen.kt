@@ -21,6 +21,7 @@ import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
 import androidx.compose.ui.input.pointer.pointerInput
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AdminEmployeeSettingsScreen(
     employeeId: String,
@@ -29,8 +30,12 @@ fun AdminEmployeeSettingsScreen(
     modifier: Modifier = Modifier
 ) {
     var isMapTouched by remember { mutableStateOf(false) }
-    var settings by remember { mutableStateOf(viewModel.getEmployeeSettings(employeeId)) }
+    val settings by remember { mutableStateOf(viewModel.getEmployeeSettings(employeeId)) }
+    val branches by viewModel.branches.collectAsState()
     
+    var selectedBranch by remember { mutableStateOf(settings.branch) }
+    var branchDropdownExpanded by remember { mutableStateOf(false) }
+
     var baseSalaryStr by remember { mutableStateOf(settings.baseSalary.toString()) }
     var checkInH by remember { mutableStateOf(settings.checkInTimeHours.toString()) }
     var checkInM by remember { mutableStateOf(settings.checkInTimeMinutes.toString()) }
@@ -46,6 +51,10 @@ fun AdminEmployeeSettingsScreen(
     var isFridayOff by remember { mutableStateOf(settings.weekOffs.contains(Calendar.FRIDAY)) }
     var isSaturdayOff by remember { mutableStateOf(settings.weekOffs.contains(Calendar.SATURDAY)) }
 
+    var targetLat by remember { mutableStateOf(settings.targetLatitude.toString()) }
+    var targetLon by remember { mutableStateOf(settings.targetLongitude.toString()) }
+    var targetRadius by remember { mutableStateOf(settings.targetRadiusMeters.toString()) }
+
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -53,6 +62,67 @@ fun AdminEmployeeSettingsScreen(
             .verticalScroll(rememberScrollState(), enabled = !isMapTouched)
     ) {
         Text("Settings: $employeeId", style = MaterialTheme.typography.headlineSmall)
+        Spacer(modifier = Modifier.height(16.dp))
+
+        // Branch Selection Dropdown
+        Text("Branch Assignment", style = MaterialTheme.typography.titleMedium)
+        Spacer(modifier = Modifier.height(4.dp))
+        ExposedDropdownMenuBox(
+            expanded = branchDropdownExpanded,
+            onExpandedChange = { branchDropdownExpanded = it },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = if (selectedBranch.isNotBlank()) selectedBranch else "None (Individual Settings)",
+                onValueChange = {},
+                readOnly = true,
+                label = { Text("Branch") },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = branchDropdownExpanded) },
+                modifier = Modifier.menuAnchor().fillMaxWidth()
+            )
+            ExposedDropdownMenu(
+                expanded = branchDropdownExpanded,
+                onDismissRequest = { branchDropdownExpanded = false }
+            ) {
+                DropdownMenuItem(
+                    text = { Text("None (Individual / Standalone)") },
+                    onClick = {
+                        selectedBranch = ""
+                        branchDropdownExpanded = false
+                    }
+                )
+                branches.forEach { br ->
+                    DropdownMenuItem(
+                        text = { Text(br.name) },
+                        onClick = {
+                            selectedBranch = br.name
+                            branchDropdownExpanded = false
+                            // Auto-populate shift & location from the branch
+                            checkInH = br.checkInTimeHours.toString()
+                            checkInM = br.checkInTimeMinutes.toString()
+                            checkOutH = br.checkOutTimeHours.toString()
+                            checkOutM = br.checkOutTimeMinutes.toString()
+                            targetLat = br.targetLatitude.toString()
+                            targetLon = br.targetLongitude.toString()
+                            targetRadius = br.targetRadiusMeters.toString()
+                        }
+                    )
+                }
+            }
+        }
+        if (selectedBranch.isNotBlank()) {
+            Spacer(modifier = Modifier.height(6.dp))
+            Card(
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.primaryContainer),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = "🏢 Assigned to '$selectedBranch'. Shift times and attendance location are synchronized with the branch. Week offs and salary remain individual.",
+                    style = MaterialTheme.typography.bodySmall,
+                    modifier = Modifier.padding(10.dp)
+                )
+            }
+        }
         Spacer(modifier = Modifier.height(16.dp))
         
         OutlinedTextField(
@@ -120,10 +190,6 @@ fun AdminEmployeeSettingsScreen(
         
         Spacer(modifier = Modifier.height(16.dp))
         Text("Location Settings:", style = MaterialTheme.typography.titleMedium)
-        
-        var targetLat by remember { mutableStateOf(settings.targetLatitude.toString()) }
-        var targetLon by remember { mutableStateOf(settings.targetLongitude.toString()) }
-        var targetRadius by remember { mutableStateOf(settings.targetRadiusMeters.toString()) }
         
         var searchQuery by remember { mutableStateOf("") }
         val context = LocalContext.current
@@ -260,6 +326,7 @@ fun AdminEmployeeSettingsScreen(
                 
                 val newSettings = settings.copy(
                     baseSalary = baseSalaryStr.toDoubleOrNull() ?: 0.0,
+                    branch = selectedBranch,
                     checkInTimeHours = checkInH.toIntOrNull() ?: 9,
                     checkInTimeMinutes = checkInM.toIntOrNull() ?: 0,
                     checkOutTimeHours = checkOutH.toIntOrNull() ?: 17,

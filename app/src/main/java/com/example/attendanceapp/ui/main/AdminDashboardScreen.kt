@@ -2,6 +2,8 @@ package com.example.attendanceapp.ui.main
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -27,10 +29,11 @@ import androidx.compose.ui.layout.ContentScale
 import androidx.compose.ui.unit.dp
 import androidx.navigation3.runtime.NavKey
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.Chat
 import coil.compose.AsyncImage
 import com.example.attendanceapp.AdminEmployeeDetail
 import com.example.attendanceapp.ManageLeaves
+import com.example.attendanceapp.ManageBranches
 import com.example.attendanceapp.ChatListScreenKey
 import android.app.Activity
 import android.content.Intent
@@ -50,6 +53,8 @@ fun AdminDashboardScreen(
 ) {
     val context = LocalContext.current
     val employees by viewModel.employees.collectAsState()
+    val branches by viewModel.branches.collectAsState()
+    var selectedBranchFilter by remember { mutableStateOf<String?>(null) }
     
     val exportLauncher = rememberLauncherForActivityResult(ActivityResultContracts.StartActivityForResult()) { result ->
         if (result.resultCode == Activity.RESULT_OK) {
@@ -57,12 +62,19 @@ fun AdminDashboardScreen(
                 try {
                     context.contentResolver.openOutputStream(uri)?.use { outputStream ->
                         OutputStreamWriter(outputStream).use { writer ->
-                            writer.write("Employee Name,Base Salary,Total Working Days,Days Present,Approved Leaves,Days Absent,Per Day Salary,Deduction,Net Salary\n")
-                            employees.forEach { empId ->
+                            writer.write("Branch,Employee Name,Base Salary,Total Working Days,Days Present,Approved Leaves,Days Absent,Per Day Salary,Deduction,Net Salary\n")
+                            val sortedEmployees = employees.sortedWith(
+                                compareBy(
+                                    { viewModel.getEmployeeSettings(it).branch.ifBlank { "ZZZ_NoBranch" } },
+                                    { viewModel.getEmployeeSettings(it).displayName.ifBlank { it } }
+                                )
+                            )
+                            sortedEmployees.forEach { empId ->
                                 val empSettings = viewModel.getEmployeeSettings(empId)
                                 val name = if (empSettings.displayName.isNotBlank()) empSettings.displayName else empId
+                                val branchName = if (empSettings.branch.isNotBlank()) empSettings.branch else "No Branch"
                                 val calc = viewModel.calculateSalaryForEmployee(empId)
-                                writer.write("$name,${calc.baseSalary},${calc.totalWorkingDays},${calc.presentDays},${calc.approvedLeaveDays},${calc.absentDays},${calc.perDaySalary},${calc.deduction},${calc.netSalary}\n")
+                                writer.write("$branchName,$name,${calc.baseSalary},${calc.totalWorkingDays},${calc.presentDays},${calc.approvedLeaveDays},${calc.absentDays},${calc.perDaySalary},${calc.deduction},${calc.netSalary}\n")
                             }
                         }
                     }
@@ -88,7 +100,7 @@ fun AdminDashboardScreen(
     Scaffold(
         floatingActionButton = {
             FloatingActionButton(onClick = { onNavigate(ChatListScreenKey) }, containerColor = androidx.compose.ui.graphics.Color.Red, contentColor = androidx.compose.ui.graphics.Color.White) {
-                Icon(Icons.Default.Chat, contentDescription = "Chat")
+                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Chat")
             }
         },
         modifier = modifier.fillMaxSize()
@@ -138,16 +150,69 @@ fun AdminDashboardScreen(
                     Text(LanguageManager.t("View Monthly Report"))
                 }
                 
+                Spacer(modifier = Modifier.height(16.dp))
+                
+                Button(
+                    onClick = { onNavigate(ManageBranches) },
+                    modifier = Modifier.fillMaxWidth().height(56.dp)
+                ) {
+                    Text(LanguageManager.t("Manage Branches & Shifts"))
+                }
+                
                 Spacer(modifier = Modifier.height(24.dp))
                 
                 Text(LanguageManager.t("Employees"), style = MaterialTheme.typography.titleMedium)
                 Spacer(modifier = Modifier.height(8.dp))
                 
-                if (employees.isEmpty()) {
+                // Branch filter chips
+                Row(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .horizontalScroll(rememberScrollState()),
+                    horizontalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    FilterChip(
+                        selected = selectedBranchFilter == null,
+                        onClick = { selectedBranchFilter = null },
+                        label = { Text("All (${employees.size})") }
+                    )
+                    branches.forEach { b ->
+                        val count = employees.count { 
+                            val st = viewModel.getEmployeeSettings(it)
+                            st.branch.equals(b.name, ignoreCase = true) || st.branch.equals(b.id, ignoreCase = true)
+                        }
+                        FilterChip(
+                            selected = selectedBranchFilter == b.name,
+                            onClick = { selectedBranchFilter = b.name },
+                            label = { Text("${b.name} ($count)") }
+                        )
+                    }
+                    val unassignedCount = employees.count { viewModel.getEmployeeSettings(it).branch.isBlank() }
+                    if (unassignedCount > 0) {
+                        FilterChip(
+                            selected = selectedBranchFilter == "",
+                            onClick = { selectedBranchFilter = "" },
+                            label = { Text("Unassigned ($unassignedCount)") }
+                        )
+                    }
+                }
+                
+                Spacer(modifier = Modifier.height(8.dp))
+
+                val filteredEmployees = employees.filter { empId ->
+                    val b = viewModel.getEmployeeSettings(empId).branch
+                    when (selectedBranchFilter) {
+                        null -> true
+                        "" -> b.isBlank()
+                        else -> b.equals(selectedBranchFilter, ignoreCase = true)
+                    }
+                }
+
+                if (filteredEmployees.isEmpty()) {
                     Text(LanguageManager.t("No employees found."))
                 } else {
                     LazyColumn {
-                        items(employees) { empId ->
+                        items(filteredEmployees) { empId ->
                             val empSettings = viewModel.getEmployeeSettings(empId)
                             Card(
                                 modifier = Modifier
@@ -182,13 +247,26 @@ fun AdminDashboardScreen(
                                         }
                                     }
                                     Spacer(modifier = Modifier.width(16.dp))
-                                    Column {
+                                    Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = if (empSettings.displayName.isNotBlank()) empSettings.displayName else empId,
                                             style = MaterialTheme.typography.titleMedium
                                         )
                                         if (empSettings.displayName.isNotBlank()) {
                                             Text(text = empId, style = MaterialTheme.typography.bodySmall)
+                                        }
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        val branchName = if (empSettings.branch.isNotBlank()) empSettings.branch else "No Branch"
+                                        Surface(
+                                            shape = MaterialTheme.shapes.extraSmall,
+                                            color = if (empSettings.branch.isNotBlank()) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
+                                        ) {
+                                            Text(
+                                                text = "🏢 $branchName",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = if (empSettings.branch.isNotBlank()) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
+                                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                            )
                                         }
                                     }
                                 }

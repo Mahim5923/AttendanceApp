@@ -8,6 +8,7 @@ data class EmployeeSettings(
     val displayName: String = "",
     val profilePhotoUri: String = "",
     val baseSalary: Double = 0.0,
+    val branch: String = "",
     val checkInTimeHours: Int = 9,
     val checkInTimeMinutes: Int = 0,
     val checkOutTimeHours: Int = 17,
@@ -23,6 +24,7 @@ data class EmployeeSettings(
         json.put("displayName", displayName)
         json.put("profilePhotoUri", profilePhotoUri)
         json.put("baseSalary", baseSalary)
+        json.put("branch", branch)
         json.put("checkInTimeHours", checkInTimeHours)
         json.put("checkInTimeMinutes", checkInTimeMinutes)
         json.put("checkOutTimeHours", checkOutTimeHours)
@@ -51,6 +53,7 @@ data class EmployeeSettings(
                 displayName = json.optString("displayName", ""),
                 profilePhotoUri = json.optString("profilePhotoUri", ""),
                 baseSalary = json.optDouble("baseSalary", 0.0),
+                branch = json.optString("branch", ""),
                 checkInTimeHours = json.optInt("checkInTimeHours", 9),
                 checkInTimeMinutes = json.optInt("checkInTimeMinutes", 0),
                 checkOutTimeHours = json.optInt("checkOutTimeHours", 17),

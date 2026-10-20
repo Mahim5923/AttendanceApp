@@ -1,17 +1,17 @@
-// AttendPro - Modern iOS & Mobile Web App Controller
+// AttendPro - Modern Web & Mobile App Controller
 // 100% Matches Android Material 3 UI & Exact Feature Working
 import {
   auth,
   getDb,
   fallbackToDefaultDb,
   signInWithEmailAndPassword,
-  createUserWithEmailAndPassword,
   signOut,
   onAuthStateChanged,
   collection,
   doc,
   setDoc,
   updateDoc,
+  deleteDoc,
   onSnapshot,
   query,
   where
@@ -21,7 +21,6 @@ import {
 let currentUser = null;
 let isAdmin = false;
 let isHindi = false;
-let isSignUpMode = false;
 
 let attendances = [];
 let employeeSettingsList = [];
@@ -37,6 +36,17 @@ let mediaStream = null;
 // Calendar State
 let calendarDate = new Date();
 let selectedCalendarDate = new Date();
+
+// Branch State
+let branchesList = [];
+let unsubBranches = null;
+let adminSelectedBranchFilter = "ALL";
+let adminSelectedLeavesBranchFilter = "ALL";
+let adminSelectedReportBranchFilter = "ALL";
+let editingBranchId = null;
+let branchMap = null;
+let branchMapMarker = null;
+let branchMapCircle = null;
 
 // Firestore real-time listener unsubs
 let unsubAttendances = null;
@@ -91,6 +101,7 @@ const viewAdmin = document.getElementById("view-admin");
 const viewAdminLeaves = document.getElementById("view-admin-leaves");
 const viewAdminReport = document.getElementById("view-admin-monthly-report");
 const viewAdminDetail = document.getElementById("view-admin-employee-detail");
+const viewAdminBranches = document.getElementById("view-admin-branches");
 
 const allViews = [
   viewLogin,
@@ -103,7 +114,8 @@ const allViews = [
   viewAdmin,
   viewAdminLeaves,
   viewAdminReport,
-  viewAdminDetail
+  viewAdminDetail,
+  viewAdminBranches
 ];
 
 function showView(targetView) {
@@ -175,7 +187,7 @@ function calculateDistanceMeters(lat1, lon1, lat2, lon2) {
 
 function getMySettings(empEmail = null) {
   const email = (empEmail || currentUser?.email || "").toLowerCase();
-  return employeeSettingsList.find(s => (s.employeeId || "").toLowerCase() === email) || {
+  const raw = employeeSettingsList.find(s => (s.employeeId || "").toLowerCase() === email) || {
     employeeId: email,
     displayName: email.split("@")[0],
     targetLatitude: 0,
@@ -186,8 +198,34 @@ function getMySettings(empEmail = null) {
     checkInTimeMinutes: 0,
     checkOutTimeHours: 17,
     checkOutTimeMinutes: 0,
-    weekOffs: [1, 7] // 1 = Sun, 7 = Sat matching Java Calendar
+    weekOffs: [1, 7], // 1 = Sun, 7 = Sat matching Java Calendar
+    branch: ""
   };
+
+  // If assigned to a branch, inherit shift times and geofence location from the branch!
+  // Note: weekOffs, baseSalary, and displayName remain individual to the employee!
+  if (raw.branch) {
+    const branch = branchesList.find(b => 
+      (b.name && b.name.toLowerCase() === raw.branch.toLowerCase()) || 
+      (b.id && b.id.toLowerCase() === raw.branch.toLowerCase())
+    );
+    if (branch) {
+      return {
+        ...raw,
+        branch: branch.name || raw.branch,
+        checkInTimeHours: branch.checkInTimeHours ?? raw.checkInTimeHours ?? 9,
+        checkInTimeMinutes: branch.checkInTimeMinutes ?? raw.checkInTimeMinutes ?? 0,
+        checkOutTimeHours: branch.checkOutTimeHours ?? raw.checkOutTimeHours ?? 17,
+        checkOutTimeMinutes: branch.checkOutTimeMinutes ?? raw.checkOutTimeMinutes ?? 0,
+        targetLatitude: branch.targetLatitude !== undefined ? branch.targetLatitude : (raw.targetLatitude ?? 0),
+        targetLongitude: branch.targetLongitude !== undefined ? branch.targetLongitude : (raw.targetLongitude ?? 0),
+        targetRadiusMeters: branch.targetRadiusMeters !== undefined ? branch.targetRadiusMeters : (raw.targetRadiusMeters ?? 100),
+        weekOffs: raw.weekOffs || [1, 7] // Individual week offs preserved!
+      };
+    }
+  }
+
+  return raw;
 }
 
 // --- Android validateAttendance Implementation ---
@@ -294,14 +332,9 @@ function updateWelcomeText() {
 
 function hideAuthBanners() {
   const errBanner = document.getElementById("login-error-banner");
-  const succBanner = document.getElementById("login-success-banner");
   if (errBanner) {
     errBanner.style.display = "none";
     errBanner.innerHTML = "";
-  }
-  if (succBanner) {
-    succBanner.style.display = "none";
-    succBanner.innerHTML = "";
   }
 }
 
@@ -310,13 +343,6 @@ function showAuthError(message) {
   if (!errBanner) return;
   errBanner.style.display = "block";
   errBanner.textContent = message;
-}
-
-function showAuthSuccess(message) {
-  const succBanner = document.getElementById("login-success-banner");
-  if (!succBanner) return;
-  succBanner.style.display = "block";
-  succBanner.textContent = message;
 }
 
 // --- Robust Login Handler (Never reloads page, preserves input values) ---
@@ -361,56 +387,21 @@ async function performLogin() {
       errCode === "auth/user-not-found" || 
       errMsg.includes("INVALID_LOGIN_CREDENTIALS");
 
-    // If user account is not found in Firebase Auth, attempt auto-creation
-    // (Seamless onboarding for employees without needing a separate register button)
-    if (isCredentialError && targetEmail.toLowerCase() !== "mahimsinhsingoria@gmail.com") {
-      try {
-        if (txtBtn) txtBtn.textContent = isHindi ? "खाता तैयार हो रहा है..." : "Setting up account...";
-        const cred = await createUserWithEmailAndPassword(auth, targetEmail, pass);
-        
-        // Auto-provision default settings for new employee if not already set
-        try {
-          const db = getDb();
-          const empId = cred.user.email.toLowerCase();
-          await setDoc(doc(db, "settings", empId), {
-            employeeId: empId,
-            displayName: empId.split("@")[0],
-            baseSalary: 30000,
-            checkInTimeHours: 9,
-            checkInTimeMinutes: 0,
-            checkOutTimeHours: 17,
-            checkOutTimeMinutes: 0,
-            weekOffs: [1, 7],
-            targetLatitude: 0,
-            targetLongitude: 0,
-            targetRadiusMeters: 100
-          }, { merge: true });
-        } catch (settingsErr) {
-          console.warn("Settings creation non-fatal error:", settingsErr);
-        }
-        return; // Success! onAuthStateChanged will handle view switch
-      } catch (createErr) {
-        console.error("Auto-provision error:", createErr);
-        if (createErr.code === "auth/email-already-in-use") {
-          // Account exists, but the password entered during signIn was wrong!
-          showAuthError(isHindi ? "गलत पासवर्ड। कृपया पुनः प्रयास करें।" : "Incorrect password. Please try again.");
-          return;
-        } else if (createErr.code === "auth/weak-password") {
-          showAuthError(isHindi ? "पासवर्ड कम से कम 6 अक्षरों का होना चाहिए।" : "Password must be at least 6 characters.");
-          return;
-        }
-      }
-    }
-
-    // Handle specific error codes
-    let msg = errMsg || "Login failed.";
-    if (errCode === "auth/wrong-password") {
+    // Handle specific error codes - refuse access if account does not exist or credentials fail
+    let msg = errMsg || (isHindi ? "लॉगिन विफल रहा।" : "Login failed.");
+    if (errCode === "auth/user-not-found") {
+      msg = isHindi 
+        ? "खाता मौजूद नहीं है। पहुंच अस्वीकृत। कृपया व्यवस्थापक से संपर्क करें।" 
+        : "Account does not exist. Access denied. Please contact your administrator.";
+    } else if (errCode === "auth/wrong-password") {
       msg = isHindi ? "गलत पासवर्ड। कृपया पुनः प्रयास करें।" : "Incorrect password. Please try again.";
     } else if (isCredentialError) {
       if (targetEmail.toLowerCase() === "mahimsinhsingoria@gmail.com") {
         msg = isHindi ? "एडमिन पासवर्ड गलत है। कृपया पुनः प्रयास करें।" : "Incorrect admin password. Please try again.";
       } else {
-        msg = isHindi ? "गलत ईमेल या पासवर्ड। कृपया पुनः प्रयास करें।" : "Incorrect email or password. Please try again.";
+        msg = isHindi 
+          ? "खाता मौजूद नहीं है या अमान्य विवरण। पहुंच अस्वीकृत। कृपया व्यवस्थापक से संपर्क करें।" 
+          : "Account does not exist or invalid credentials. Access denied. Please contact your administrator.";
       }
     } else if (errCode === "auth/invalid-email") {
       msg = isHindi ? "अमान्य ईमेल पता।" : "Invalid email format. Please check your email.";
@@ -418,6 +409,8 @@ async function performLogin() {
       msg = isHindi ? "नेटवर्क त्रुटि। कृपया इंटरनेट कनेक्शन जांचें।" : "Network error. Please check your internet connection.";
     } else if (errCode === "auth/too-many-requests") {
       msg = isHindi ? "बहुत सारे असफल प्रयास। कृपया थोड़ी देर बाद पुनः प्रयास करें।" : "Access temporarily disabled due to many failed attempts. Try again later.";
+    } else if (errCode === "auth/user-disabled") {
+      msg = isHindi ? "यह खाता अक्षम कर दिया गया है।" : "This account has been disabled.";
     }
 
     showAuthError(msg);
@@ -593,6 +586,7 @@ function detachListeners() {
   if (unsubSettings) unsubSettings();
   if (unsubLeaves) unsubLeaves();
   if (unsubMessages) unsubMessages();
+  if (unsubBranches) unsubBranches();
 }
 
 function setupFirestoreListeners(email) {
@@ -644,6 +638,15 @@ function setupFirestoreListeners(email) {
         .sort((a, b) => (a.timestamp || 0) - (b.timestamp || 0));
       renderChatMessages();
     }, (err) => handleListenerError(err, "messages"));
+
+    // 5. Branches listener (Realtime updates for all branches)
+    const branchesCol = collection(db, "branches");
+    unsubBranches = onSnapshot(branchesCol, (snap) => {
+      branchesList = snap.docs.map(d => ({ id: d.id, ...d.data() }))
+        .sort((a, b) => (a.name || "").localeCompare(b.name || ""));
+      renderAdminBranchesList();
+      refreshAdminViews();
+    }, (err) => handleListenerError(err, "branches"));
 
   } catch (err) {
     console.error("Error setting up listeners:", err);
@@ -909,10 +912,13 @@ function renderAttendanceCalendar() {
 
     let dotColor = "transparent";
     const isWeekOff = weekOffs.includes(dayOfWeek);
-    const hasAtt = userAtts.some(a => {
+    const dayAtts = userAtts.filter(a => {
       const ad = new Date(a.timestamp);
       return ad.getFullYear() === year && ad.getMonth() === month && ad.getDate() === day;
     });
+    const hasIn = dayAtts.some(a => (a.type || "").toUpperCase().trim() === "IN");
+    const hasOut = dayAtts.some(a => (a.type || "").toUpperCase().trim() === "OUT");
+    const isPresent = hasIn && hasOut;
 
     const hasLeave = userLeaves.some(l => {
       const ld = new Date(l.dateTimestamp);
@@ -921,12 +927,12 @@ function renderAttendanceCalendar() {
 
     if (isWeekOff) {
       dotColor = "#9E9E9E"; // Week off
-    } else if (hasAtt) {
-      dotColor = "#2E7D32"; // Present
     } else if (hasLeave) {
       dotColor = "#FB8C00"; // Leave
-    } else if (d < today) {
-      dotColor = "#E53935"; // Absent
+    } else if (isPresent) {
+      dotColor = "#2E7D32"; // Present (both IN and OUT completed)
+    } else if (d <= today) {
+      dotColor = "#E53935"; // Absent (only marked present if both IN and OUT are done)
     }
 
     const isSelected = selectedCalendarDate.getFullYear() === year &&
@@ -1387,6 +1393,9 @@ function refreshAdminViews() {
     renderAdminEmployeeCalendar();
     renderAdminEmployeeDateRecords();
   }
+  if (viewAdminBranches && viewAdminBranches.classList.contains("active")) {
+    renderAdminBranchesList();
+  }
 }
 
 // 1. Navigation Button Event Handlers
@@ -1417,6 +1426,22 @@ const btnBackFromAdminReport = document.getElementById("btn-back-from-admin-repo
 if (btnBackFromAdminReport) {
   btnBackFromAdminReport.addEventListener("click", () => {
     showView(viewAdmin);
+  });
+}
+
+const btnAdminToBranches = document.getElementById("btn-admin-to-branches");
+if (btnAdminToBranches) {
+  btnAdminToBranches.addEventListener("click", () => {
+    showView(viewAdminBranches);
+    renderAdminBranchesList();
+  });
+}
+
+const btnBackFromAdminBranches = document.getElementById("btn-back-from-admin-branches");
+if (btnBackFromAdminBranches) {
+  btnBackFromAdminBranches.addEventListener("click", () => {
+    showView(viewAdmin);
+    renderAdminDashboard();
   });
 }
 
@@ -1534,16 +1559,88 @@ function renderAdminDashboard() {
     ...attendances.map(a => a.employeeId.toLowerCase())
   ])).filter(e => e !== "admin");
 
-  if (allEmps.length === 0) {
-    staffListEl.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 24px;">No registered employees found.</div>`;
+  // Render Branch Filter Tabs
+  const branchFilterContainer = document.getElementById("admin-branch-filter-container");
+  const staffCountEl = document.getElementById("admin-staff-count");
+  if (branchFilterContainer) {
+    const branchCounts = {};
+    let unassignedCount = 0;
+    allEmps.forEach(empId => {
+      const s = getMySettings(empId);
+      if (s.branch) {
+        branchCounts[s.branch] = (branchCounts[s.branch] || 0) + 1;
+      } else {
+        unassignedCount++;
+      }
+    });
+
+    let filterHtml = `
+      <button type="button" class="btn-text branch-filter-pill ${adminSelectedBranchFilter === 'ALL' ? 'active-filter' : ''}" data-branch="ALL">
+        All (${allEmps.length})
+      </button>
+    `;
+
+    branchesList.forEach(b => {
+      const count = branchCounts[b.name] || 0;
+      const isAct = adminSelectedBranchFilter.toLowerCase() === (b.name || "").toLowerCase();
+      filterHtml += `
+        <button type="button" class="btn-text branch-filter-pill ${isAct ? 'active-filter' : ''}" data-branch="${b.name}">
+          🏢 ${b.name} (${count})
+        </button>
+      `;
+    });
+
+    if (unassignedCount > 0 || branchesList.length > 0) {
+      const isUnassignedAct = adminSelectedBranchFilter === 'UNASSIGNED';
+      filterHtml += `
+        <button type="button" class="btn-text branch-filter-pill ${isUnassignedAct ? 'active-filter' : ''}" data-branch="UNASSIGNED">
+          Unassigned (${unassignedCount})
+        </button>
+      `;
+    }
+
+    branchFilterContainer.innerHTML = filterHtml;
+    branchFilterContainer.querySelectorAll(".branch-filter-pill").forEach(pill => {
+      pill.addEventListener("click", () => {
+        adminSelectedBranchFilter = pill.getAttribute("data-branch");
+        renderAdminDashboard();
+      });
+    });
+  }
+
+  // Filter employees based on selected branch
+  let filteredEmps = allEmps.slice();
+  if (adminSelectedBranchFilter === "UNASSIGNED") {
+    filteredEmps = allEmps.filter(empId => !getMySettings(empId).branch);
+  } else if (adminSelectedBranchFilter !== "ALL") {
+    filteredEmps = allEmps.filter(empId => (getMySettings(empId).branch || "").toLowerCase() === adminSelectedBranchFilter.toLowerCase());
+  }
+
+  // Sort employees by branch, then by name
+  filteredEmps.sort((a, b) => {
+    const brA = (getMySettings(a).branch || "ZZZ_NoBranch").toLowerCase();
+    const brB = (getMySettings(b).branch || "ZZZ_NoBranch").toLowerCase();
+    if (brA !== brB) return brA.localeCompare(brB);
+    const nameA = (getMySettings(a).displayName || a).toLowerCase();
+    const nameB = (getMySettings(b).displayName || b).toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
+
+  if (staffCountEl) {
+    staffCountEl.textContent = `${filteredEmps.length} ${filteredEmps.length === 1 ? 'employee' : 'employees'}`;
+  }
+
+  if (filteredEmps.length === 0) {
+    staffListEl.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 32px 16px; background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 12px;">No employees in this branch.</div>`;
     return;
   }
 
-  staffListEl.innerHTML = allEmps.map(empId => {
+  staffListEl.innerHTML = filteredEmps.map(empId => {
     const s = getMySettings(empId);
     const displayName = (s.displayName && s.displayName.trim().length > 0) ? s.displayName.trim() : empId;
     const initial = (empId.charAt(0) || "?").toUpperCase();
     const photo = s.profilePhotoUri || "";
+    const branchName = s.branch || "Unassigned";
 
     return `
       <div class="emp-card-row" data-id="${empId}" style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 12px; padding: 14px 16px; margin-bottom: 10px; display: flex; align-items: center; cursor: pointer; transition: transform 0.15s, box-shadow 0.15s; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
@@ -1554,6 +1651,9 @@ function renderAdminDashboard() {
         <div style="flex: 1; min-width: 0;">
           <div style="font-weight: 600; font-size: 1rem; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${displayName}</div>
           ${s.displayName && s.displayName.trim().length > 0 ? `<div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${empId}</div>` : ''}
+          <div style="margin-top: 4px;">
+            <span class="branch-badge ${s.branch ? '' : 'unassigned'}">🏢 ${branchName}</span>
+          </div>
         </div>
         <div style="color: var(--text-secondary); font-size: 1.2rem; padding-left: 8px;">›</div>
       </div>
@@ -1585,6 +1685,9 @@ function openAdminEmployeeDetail(employeeId) {
   if (titleEl) titleEl.textContent = `Details: ${displayName}`;
 
   // Overview Info Card
+  const dispBranch = document.getElementById("admin-detail-disp-branch");
+  if (dispBranch) dispBranch.textContent = s.branch ? s.branch : "Unassigned (Custom Settings)";
+
   const dispSalary = document.getElementById("admin-detail-disp-salary");
   if (dispSalary) dispSalary.textContent = `₹${(s.baseSalary || 30000).toLocaleString()}`;
 
@@ -1604,6 +1707,51 @@ function openAdminEmployeeDetail(employeeId) {
   document.getElementById("admin-detail-emp-id").value = employeeId;
   document.getElementById("admin-detail-display-name").value = s.displayName || "";
   document.getElementById("admin-detail-base-salary").value = s.baseSalary || 30000;
+
+  // Populate Branch Select Dropdown
+  const branchSelect = document.getElementById("admin-detail-branch");
+  const branchHint = document.getElementById("admin-detail-branch-hint");
+  if (branchSelect) {
+    let branchOptions = `<option value="">-- No Branch (Individual Settings) --</option>`;
+    branchesList.forEach(b => {
+      const isSel = (s.branch || "").toLowerCase() === (b.name || "").toLowerCase();
+      const bInH = String(b.checkInTimeHours ?? 9).padStart(2, "0");
+      const bInM = String(b.checkInTimeMinutes ?? 0).padStart(2, "0");
+      const bOutH = String(b.checkOutTimeHours ?? 17).padStart(2, "0");
+      const bOutM = String(b.checkOutTimeMinutes ?? 0).padStart(2, "0");
+      branchOptions += `<option value="${b.name}" ${isSel ? 'selected' : ''}>🏢 ${b.name} (${bInH}:${bInM} - ${bOutH}:${bOutM})</option>`;
+    });
+    branchSelect.innerHTML = branchOptions;
+
+    if (branchHint) {
+      branchHint.style.display = s.branch ? "block" : "none";
+    }
+
+    // Auto-fill on branch change
+    branchSelect.onchange = () => {
+      const selectedName = branchSelect.value;
+      if (selectedName) {
+        const foundBranch = branchesList.find(b => b.name.toLowerCase() === selectedName.toLowerCase());
+        if (foundBranch) {
+          if (branchHint) {
+            branchHint.textContent = `ℹ️ Shift times (${String(foundBranch.checkInTimeHours).padStart(2,'0')}:${String(foundBranch.checkInTimeMinutes).padStart(2,'0')} - ${String(foundBranch.checkOutTimeHours).padStart(2,'0')}:${String(foundBranch.checkOutTimeMinutes).padStart(2,'0')}) and office location will be synced from ${foundBranch.name}. Week offs and salary remain individual.`;
+            branchHint.style.display = "block";
+          }
+          document.getElementById("admin-detail-in-hour").value = foundBranch.checkInTimeHours ?? 9;
+          document.getElementById("admin-detail-in-min").value = foundBranch.checkInTimeMinutes ?? 0;
+          document.getElementById("admin-detail-out-hour").value = foundBranch.checkOutTimeHours ?? 17;
+          document.getElementById("admin-detail-out-min").value = foundBranch.checkOutTimeMinutes ?? 0;
+          document.getElementById("admin-detail-lat").value = foundBranch.targetLatitude || 0;
+          document.getElementById("admin-detail-lon").value = foundBranch.targetLongitude || 0;
+          document.getElementById("admin-detail-radius").value = foundBranch.targetRadiusMeters || 100;
+          initOrRefreshAdminMap();
+        }
+      } else {
+        if (branchHint) branchHint.style.display = "none";
+      }
+    };
+  }
+
   document.getElementById("admin-detail-in-hour").value = s.checkInTimeHours ?? 9;
   document.getElementById("admin-detail-in-min").value = s.checkInTimeMinutes ?? 0;
   document.getElementById("admin-detail-out-hour").value = s.checkOutTimeHours ?? 17;
@@ -1703,10 +1851,13 @@ function renderAdminEmployeeCalendar() {
     const dayOfWeek = dateObj.getDay() + 1; // 1 = Sun, 7 = Sat
     const isWeekOff = weekOffs.includes(dayOfWeek);
 
-    const hasAtt = empAtts.some(a => {
+    const dayAtts = empAtts.filter(a => {
       const ad = new Date(a.timestamp);
       return ad.getFullYear() === year && ad.getMonth() === month && ad.getDate() === d;
     });
+    const hasIn = dayAtts.some(a => (a.type || "").toUpperCase().trim() === "IN");
+    const hasOut = dayAtts.some(a => (a.type || "").toUpperCase().trim() === "OUT");
+    const isPresent = hasIn && hasOut;
 
     const hasApprovedLeave = empLeaves.some(l => {
       const ld = new Date(l.dateTimestamp);
@@ -1716,12 +1867,12 @@ function renderAdminEmployeeCalendar() {
     let dotColor = "transparent";
     if (isWeekOff) {
       dotColor = "#9E9E9E"; // Week Off (Gray)
-    } else if (hasAtt) {
-      dotColor = "#2E7D32"; // Present (Green)
     } else if (hasApprovedLeave) {
       dotColor = "#F57C00"; // Leave (Orange)
-    } else if (dateObj < today) {
-      dotColor = "#D32F2F"; // Absent (Red)
+    } else if (isPresent) {
+      dotColor = "#2E7D32"; // Present (Green - both IN and OUT completed)
+    } else if (dateObj <= today) {
+      dotColor = "#D32F2F"; // Absent (Red - only marked present if both IN and OUT are done)
     }
 
     const isSelected = (
@@ -2080,6 +2231,7 @@ if (formAdminEmployeeDetail) {
     const payload = {
       employeeId: empId.toLowerCase(),
       displayName: document.getElementById("admin-detail-display-name").value.trim(),
+      branch: (document.getElementById("admin-detail-branch")?.value || "").trim(),
       baseSalary: parseFloat(document.getElementById("admin-detail-base-salary").value) || 30000,
       checkInTimeHours: parseInt(document.getElementById("admin-detail-in-hour").value) || 9,
       checkInTimeMinutes: parseInt(document.getElementById("admin-detail-in-min").value) || 0,
@@ -2109,30 +2261,96 @@ if (formAdminEmployeeDetail) {
 // 5. Manage Leave Requests Screen (Matches Android ManageLeavesScreen.kt)
 function renderAdminLeavesList() {
   const leavesListEl = document.getElementById("admin-leaves-list");
+  const branchFilterContainer = document.getElementById("admin-leaves-branch-filter-container");
   if (!leavesListEl) return;
 
-  if (leaveRequests.length === 0) {
+  if (branchFilterContainer) {
+    const branchCounts = {};
+    let unassignedCount = 0;
+    leaveRequests.forEach(req => {
+      const s = getMySettings(req.employeeId);
+      if (s.branch) {
+        branchCounts[s.branch] = (branchCounts[s.branch] || 0) + 1;
+      } else {
+        unassignedCount++;
+      }
+    });
+
+    let filterHtml = `
+      <button type="button" class="btn-text branch-filter-pill ${adminSelectedLeavesBranchFilter === 'ALL' ? 'active-filter' : ''}" data-branch="ALL">
+        All (${leaveRequests.length})
+      </button>
+    `;
+
+    branchesList.forEach(b => {
+      const count = branchCounts[b.name] || 0;
+      const isAct = adminSelectedLeavesBranchFilter.toLowerCase() === (b.name || "").toLowerCase();
+      filterHtml += `
+        <button type="button" class="btn-text branch-filter-pill ${isAct ? 'active-filter' : ''}" data-branch="${b.name}">
+          🏢 ${b.name} (${count})
+        </button>
+      `;
+    });
+
+    if (unassignedCount > 0 || branchesList.length > 0) {
+      const isUnassignedAct = adminSelectedLeavesBranchFilter === 'UNASSIGNED';
+      filterHtml += `
+        <button type="button" class="btn-text branch-filter-pill ${isUnassignedAct ? 'active-filter' : ''}" data-branch="UNASSIGNED">
+          Unassigned (${unassignedCount})
+        </button>
+      `;
+    }
+
+    branchFilterContainer.innerHTML = filterHtml;
+    branchFilterContainer.querySelectorAll(".branch-filter-pill").forEach(pill => {
+      pill.addEventListener("click", () => {
+        adminSelectedLeavesBranchFilter = pill.getAttribute("data-branch");
+        renderAdminLeavesList();
+      });
+    });
+  }
+
+  let filteredLeaves = leaveRequests.slice();
+  if (adminSelectedLeavesBranchFilter === "UNASSIGNED") {
+    filteredLeaves = filteredLeaves.filter(req => !getMySettings(req.employeeId).branch);
+  } else if (adminSelectedLeavesBranchFilter !== "ALL") {
+    filteredLeaves = filteredLeaves.filter(req => (getMySettings(req.employeeId).branch || "").toLowerCase() === adminSelectedLeavesBranchFilter.toLowerCase());
+  }
+
+  // Sort by branch, then by requestedAtTimestamp descending
+  filteredLeaves.sort((a, b) => {
+    const brA = (getMySettings(a.employeeId).branch || "ZZZ_NoBranch").toLowerCase();
+    const brB = (getMySettings(b.employeeId).branch || "ZZZ_NoBranch").toLowerCase();
+    if (brA !== brB) return brA.localeCompare(brB);
+    return (b.requestedAtTimestamp || 0) - (a.requestedAtTimestamp || 0);
+  });
+
+  if (filteredLeaves.length === 0) {
     leavesListEl.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 24px;">No leave requests found.</div>`;
     return;
   }
 
-  leavesListEl.innerHTML = leaveRequests.map(req => {
+  leavesListEl.innerHTML = filteredLeaves.map(req => {
     const s = getMySettings(req.employeeId);
     const empName = (s.displayName && s.displayName.trim().length > 0) ? s.displayName.trim() : req.employeeId;
+    const branchName = s.branch || "Unassigned";
     const dateStr = new Date(req.dateTimestamp).toLocaleDateString([], { day: '2-digit', month: 'short', year: 'numeric' });
     const isPending = req.status === "PENDING";
     const statusColor = req.status === "APPROVED" ? "#2E7D32" : (req.status === "REJECTED" ? "#C62828" : "#E65100");
 
     return `
       <div style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
-        <div style="font-size: 1rem; font-weight: 600; color: var(--primary); margin-bottom: 4px;">Employee: ${empName}</div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
+          <div style="font-size: 1rem; font-weight: 600; color: var(--primary);">Employee: ${empName}</div>
+          <span class="branch-badge ${s.branch ? '' : 'unassigned'}">🏢 ${branchName}</span>
+        </div>
         <div style="font-size: 0.95rem; margin-bottom: 4px; color: var(--text-primary);">Date: ${dateStr}</div>
         <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">Reason: ${req.reason || "N/A"}</div>
         <div style="display: flex; justify-content: space-between; align-items: center; flex-wrap: wrap; gap: 8px;">
           <div style="font-weight: 600; font-size: 0.9rem;">Status: <span style="color: ${statusColor}; font-weight: 700;">${req.status}</span></div>
           ${isPending ? `
             <div style="display: flex; gap: 8px;">
-              <button type="button" class="btn-m3 btn-approve-leave" data-id="${req.id}" style="height: 38px; padding: 0 16px; margin-bottom: 0; background: var(--primary);">Approve</button>
+              <button type="button" class="btn-m3 btn-approve-leave" data-id="${req.id}" style="height: 38px; padding: 0 16px; margin-bottom: 0;">Approve</button>
               <button type="button" class="btn-text btn-reject-leave" data-id="${req.id}" style="height: 38px; padding: 0 16px; border: 1.5px solid #D32F2F; color: #D32F2F; border-radius: 8px; font-weight: 600;">Reject</button>
             </div>
           ` : ''}
@@ -2169,6 +2387,7 @@ async function updateLeaveStatus(id, newStatus) {
 function renderMonthlyReportScreen() {
   const cardsContainer = document.getElementById("admin-monthly-report-cards");
   const monthYearLabel = document.getElementById("disp-report-month-year");
+  const branchFilterContainer = document.getElementById("admin-report-branch-filter-container");
   if (!cardsContainer) return;
 
   const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
@@ -2181,20 +2400,89 @@ function renderMonthlyReportScreen() {
     ...attendances.map(a => a.employeeId.toLowerCase())
   ])).filter(e => e !== "admin");
 
-  if (allEmps.length === 0) {
+  if (branchFilterContainer) {
+    const branchCounts = {};
+    let unassignedCount = 0;
+    allEmps.forEach(empId => {
+      const s = getMySettings(empId);
+      if (s.branch) {
+        branchCounts[s.branch] = (branchCounts[s.branch] || 0) + 1;
+      } else {
+        unassignedCount++;
+      }
+    });
+
+    let filterHtml = `
+      <button type="button" class="btn-text branch-filter-pill ${adminSelectedReportBranchFilter === 'ALL' ? 'active-filter' : ''}" data-branch="ALL">
+        All (${allEmps.length})
+      </button>
+    `;
+
+    branchesList.forEach(b => {
+      const count = branchCounts[b.name] || 0;
+      const isAct = adminSelectedReportBranchFilter.toLowerCase() === (b.name || "").toLowerCase();
+      filterHtml += `
+        <button type="button" class="btn-text branch-filter-pill ${isAct ? 'active-filter' : ''}" data-branch="${b.name}">
+          🏢 ${b.name} (${count})
+        </button>
+      `;
+    });
+
+    if (unassignedCount > 0 || branchesList.length > 0) {
+      const isUnassignedAct = adminSelectedReportBranchFilter === 'UNASSIGNED';
+      filterHtml += `
+        <button type="button" class="btn-text branch-filter-pill ${isUnassignedAct ? 'active-filter' : ''}" data-branch="UNASSIGNED">
+          Unassigned (${unassignedCount})
+        </button>
+      `;
+    }
+
+    branchFilterContainer.innerHTML = filterHtml;
+    branchFilterContainer.querySelectorAll(".branch-filter-pill").forEach(pill => {
+      pill.addEventListener("click", () => {
+        adminSelectedReportBranchFilter = pill.getAttribute("data-branch");
+        renderMonthlyReportScreen();
+      });
+    });
+  }
+
+  let filteredEmps = allEmps.slice();
+  if (adminSelectedReportBranchFilter === "UNASSIGNED") {
+    filteredEmps = allEmps.filter(empId => !getMySettings(empId).branch);
+  } else if (adminSelectedReportBranchFilter !== "ALL") {
+    filteredEmps = allEmps.filter(empId => (getMySettings(empId).branch || "").toLowerCase() === adminSelectedReportBranchFilter.toLowerCase());
+  }
+
+  // Sort employees by branch, then by employee display name / ID
+  filteredEmps.sort((a, b) => {
+    const brA = (getMySettings(a).branch || "ZZZ_NoBranch").toLowerCase();
+    const brB = (getMySettings(b).branch || "ZZZ_NoBranch").toLowerCase();
+    if (brA !== brB) return brA.localeCompare(brB);
+    const nameA = (getMySettings(a).displayName || a).toLowerCase();
+    const nameB = (getMySettings(b).displayName || b).toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
+
+  if (filteredEmps.length === 0) {
     cardsContainer.innerHTML = `<div style="text-align: center; color: var(--text-secondary); padding: 24px;">No employees found.</div>`;
     return;
   }
 
-  cardsContainer.innerHTML = allEmps.map(empId => {
+  cardsContainer.innerHTML = filteredEmps.map(empId => {
     const s = getMySettings(empId);
     const name = (s.displayName && s.displayName.trim().length > 0) ? s.displayName.trim() : empId;
+    const branchName = s.branch || "Unassigned";
     const calc = calculateSalaryForEmployee(empId, reportSelectedYear, reportSelectedMonth);
 
     return `
       <div style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
-        <div style="font-size: 1.05rem; font-weight: 600; color: var(--text-primary);">${name}</div>
-        <div style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px;">${empId}</div>
+        <div style="display: flex; justify-content: space-between; align-items: flex-start;">
+          <div>
+            <div style="font-size: 1.05rem; font-weight: 600; color: var(--text-primary);">${name}</div>
+            <div style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px;">${empId}</div>
+          </div>
+          <span class="branch-badge ${s.branch ? '' : 'unassigned'}">🏢 ${branchName}</span>
+        </div>
 
         <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.9rem;">
           <span style="color: var(--text-secondary);">Base Salary:</span>
@@ -2243,12 +2531,23 @@ if (btnAdminExportReportCsv) {
       ...attendances.map(a => a.employeeId.toLowerCase())
     ])).filter(e => e !== "admin");
 
-    let csv = "Employee Name,Base Salary,Total Working Days,Days Present,Approved Leaves,Days Absent,Per Day Salary,Deduction,Net Salary\n";
+    // Sort employees by branch
+    allEmps.sort((a, b) => {
+      const brA = (getMySettings(a).branch || "ZZZ_NoBranch").toLowerCase();
+      const brB = (getMySettings(b).branch || "ZZZ_NoBranch").toLowerCase();
+      if (brA !== brB) return brA.localeCompare(brB);
+      const nameA = (getMySettings(a).displayName || a).toLowerCase();
+      const nameB = (getMySettings(b).displayName || b).toLowerCase();
+      return nameA.localeCompare(nameB);
+    });
+
+    let csv = "Branch,Employee Name,Base Salary,Total Working Days,Days Present,Approved Leaves,Days Absent,Per Day Salary,Deduction,Net Salary\n";
     allEmps.forEach(empId => {
       const s = getMySettings(empId);
       const name = (s.displayName && s.displayName.trim().length > 0) ? s.displayName.trim() : empId;
+      const branchName = s.branch || "No Branch";
       const calc = calculateSalaryForEmployee(empId, reportSelectedYear, reportSelectedMonth);
-      csv += `"${name}",${calc.baseSalary},${calc.totalWorkingDays},${calc.presentDays},${calc.approvedLeaveDays},${calc.absentDays},${calc.perDaySalary.toFixed(2)},${calc.deduction.toFixed(2)},${calc.netSalary.toFixed(2)}\n`;
+      csv += `"${branchName}","${name}",${calc.baseSalary},${calc.totalWorkingDays},${calc.presentDays},${calc.approvedLeaveDays},${calc.absentDays},${calc.perDaySalary.toFixed(2)},${calc.deduction.toFixed(2)},${calc.netSalary.toFixed(2)}\n`;
     });
 
     const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
@@ -2259,6 +2558,332 @@ if (btnAdminExportReportCsv) {
     document.body.appendChild(link);
     link.click();
     document.body.removeChild(link);
+  });
+}
+
+// ==========================================
+// 6. Branch Management Screen & Modal Logic
+// ==========================================
+const modalAdminBranch = document.getElementById("modal-admin-branch");
+const btnCloseBranchModal = document.getElementById("btn-close-branch-modal");
+const btnAdminCreateBranch = document.getElementById("btn-admin-create-branch");
+const formAdminBranch = document.getElementById("form-admin-branch");
+const btnAdminBranchFillGps = document.getElementById("btn-admin-branch-fill-gps");
+
+function renderAdminBranchesList() {
+  const listEl = document.getElementById("admin-branches-list");
+  if (!listEl) return;
+
+  if (branchesList.length === 0) {
+    listEl.innerHTML = `
+      <div style="text-align: center; color: var(--text-secondary); padding: 36px 16px; background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 14px;">
+        <div style="font-size: 2.2rem; margin-bottom: 8px;">🏢</div>
+        <div style="font-weight: 700; font-size: 1.1rem; color: var(--text-primary); margin-bottom: 4px;">No Branches Created Yet</div>
+        <div style="font-size: 0.85rem; max-width: 320px; margin: 0 auto 16px;">Create branches to group employees with shared shift timings and office geofence locations.</div>
+        <button type="button" class="btn-m3" onclick="window.triggerCreateBranch && window.triggerCreateBranch()" style="max-width: 220px; margin: 0 auto; background: var(--primary);">➕ Create First Branch</button>
+      </div>
+    `;
+    return;
+  }
+
+  listEl.innerHTML = branchesList.map(b => {
+    const assignedCount = employeeSettingsList.filter(s => (s.branch || "").toLowerCase() === (b.name || "").toLowerCase()).length;
+    const inH = String(b.checkInTimeHours ?? 9).padStart(2, "0");
+    const inM = String(b.checkInTimeMinutes ?? 0).padStart(2, "0");
+    const outH = String(b.checkOutTimeHours ?? 17).padStart(2, "0");
+    const outM = String(b.checkOutTimeMinutes ?? 0).padStart(2, "0");
+
+    let locationDesc = "GPS Not Set";
+    if (b.targetLatitude && b.targetLongitude) {
+      locationDesc = `${b.targetLatitude.toFixed(4)}, ${b.targetLongitude.toFixed(4)} (Radius: ${b.targetRadiusMeters || 100}m)`;
+    }
+
+    return `
+      <div class="branch-card" style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 14px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+        <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
+          <div>
+            <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
+              🏢 ${b.name}
+            </div>
+            <div style="font-size: 0.82rem; color: var(--primary); font-weight: 600; margin-top: 3px;">
+              👥 ${assignedCount} ${assignedCount === 1 ? 'employee' : 'employees'} assigned
+            </div>
+          </div>
+          <div style="display: flex; gap: 6px;">
+            <button type="button" class="btn-text btn-edit-branch" data-id="${b.id}" style="font-size: 0.85rem; padding: 5px 10px; border: 1.5px solid var(--primary); border-radius: 8px; font-weight: 600;">Edit</button>
+            <button type="button" class="btn-text btn-delete-branch" data-id="${b.id}" data-name="${b.name}" data-count="${assignedCount}" style="font-size: 0.85rem; padding: 5px 10px; border: 1.5px solid #D32F2F; color: #D32F2F; border-radius: 8px; font-weight: 600;">Delete</button>
+          </div>
+        </div>
+
+        <div style="background: #F8F9FA; border-radius: 10px; padding: 12px; margin-bottom: 8px; font-size: 0.88rem; display: flex; flex-direction: column; gap: 6px;">
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-secondary);">⏰ Shift Timing:</span>
+            <span style="font-weight: 600;">${inH}:${inM} - ${outH}:${outM}</span>
+          </div>
+          <div style="display: flex; justify-content: space-between;">
+            <span style="color: var(--text-secondary);">📍 Office Location:</span>
+            <span style="font-weight: 600; text-align: right; word-break: break-all;">${locationDesc}</span>
+          </div>
+        </div>
+
+        <div style="font-size: 0.74rem; color: var(--text-secondary);">
+          ℹ️ Employees under this branch inherit this shift time & location. Week offs remain individual per employee.
+        </div>
+      </div>
+    `;
+  }).join("");
+
+  listEl.querySelectorAll(".btn-edit-branch").forEach(btn => {
+    btn.addEventListener("click", () => {
+      openBranchModal(btn.getAttribute("data-id"));
+    });
+  });
+
+  listEl.querySelectorAll(".btn-delete-branch").forEach(btn => {
+    btn.addEventListener("click", async () => {
+      const bId = btn.getAttribute("data-id");
+      const bName = btn.getAttribute("data-name");
+      const count = parseInt(btn.getAttribute("data-count") || "0");
+
+      let confirmMsg = `Are you sure you want to delete branch "${bName}"?`;
+      if (count > 0) {
+        confirmMsg = `Warning: ${count} employees are currently assigned to branch "${bName}". Deleting it will leave them unassigned. Proceed?`;
+      }
+
+      if (confirm(confirmMsg)) {
+        try {
+          const db = getDb();
+          await deleteDoc(doc(db, "branches", bId));
+          alert(`Branch "${bName}" deleted successfully.`);
+        } catch (err) {
+          console.error("Delete branch error:", err);
+          alert("Failed to delete branch: " + err.message);
+        }
+      }
+    });
+  });
+}
+
+window.triggerCreateBranch = () => openBranchModal(null);
+
+function openBranchModal(branchId = null) {
+  editingBranchId = branchId;
+  const titleEl = document.getElementById("modal-branch-title");
+  const idInput = document.getElementById("admin-branch-id");
+  const nameInput = document.getElementById("admin-branch-name");
+  const inHInput = document.getElementById("admin-branch-in-hour");
+  const inMInput = document.getElementById("admin-branch-in-min");
+  const outHInput = document.getElementById("admin-branch-out-hour");
+  const outMInput = document.getElementById("admin-branch-out-min");
+  const latInput = document.getElementById("admin-branch-lat");
+  const lonInput = document.getElementById("admin-branch-lon");
+  const radiusInput = document.getElementById("admin-branch-radius");
+
+  if (branchId) {
+    const b = branchesList.find(x => x.id === branchId);
+    if (!b) return;
+    if (titleEl) titleEl.textContent = `Edit Branch: ${b.name}`;
+    idInput.value = b.id;
+    nameInput.value = b.name || "";
+    inHInput.value = b.checkInTimeHours ?? 9;
+    inMInput.value = b.checkInTimeMinutes ?? 0;
+    outHInput.value = b.checkOutTimeHours ?? 17;
+    outMInput.value = b.checkOutTimeMinutes ?? 0;
+    latInput.value = b.targetLatitude || 0;
+    lonInput.value = b.targetLongitude || 0;
+    radiusInput.value = b.targetRadiusMeters || 100;
+  } else {
+    if (titleEl) titleEl.textContent = "Create New Branch";
+    idInput.value = "";
+    nameInput.value = "";
+    inHInput.value = 9;
+    inMInput.value = 0;
+    outHInput.value = 17;
+    outMInput.value = 0;
+    latInput.value = currentGpsLocation ? currentGpsLocation.lat : 0;
+    lonInput.value = currentGpsLocation ? currentGpsLocation.lon : 0;
+    radiusInput.value = 100;
+  }
+
+  if (modalAdminBranch) modalAdminBranch.classList.add("open");
+  initOrRefreshBranchMap();
+}
+
+function initOrRefreshBranchMap() {
+  const mapContainer = document.getElementById("admin-branch-map-view");
+  if (!mapContainer || typeof L === "undefined") return;
+
+  const latInput = document.getElementById("admin-branch-lat");
+  const lonInput = document.getElementById("admin-branch-lon");
+  const radiusInput = document.getElementById("admin-branch-radius");
+
+  let lat = parseFloat(latInput?.value) || 0;
+  let lon = parseFloat(lonInput?.value) || 0;
+  let radius = parseFloat(radiusInput?.value) || 100;
+
+  const isDefault = (lat === 0 && lon === 0);
+  if (isDefault) {
+    if (currentGpsLocation) {
+      lat = currentGpsLocation.lat;
+      lon = currentGpsLocation.lon;
+    } else {
+      lat = 20.5937;
+      lon = 78.9629;
+    }
+  }
+
+  const pinSvg = `
+    <svg width="34" height="46" viewBox="0 0 34 46" fill="none" xmlns="http://www.w3.org/2000/svg">
+      <path d="M17 0C7.61116 0 0 7.61116 0 17C0 29.75 17 46 17 46C17 46 34 29.75 34 17C34 7.61116 26.3888 0 17 0Z" fill="#3949AB"/>
+      <circle cx="17" cy="17" r="7" fill="#FFFFFF"/>
+      <circle cx="17" cy="17" r="3.5" fill="#3949AB"/>
+    </svg>
+  `;
+  const pinIcon = L.divIcon({
+    className: "custom-branch-map-pin",
+    html: pinSvg,
+    iconSize: [34, 46],
+    iconAnchor: [17, 46],
+    popupAnchor: [0, -46]
+  });
+
+  if (!branchMap) {
+    branchMap = L.map("admin-branch-map-view", {
+      zoomControl: true,
+      attributionControl: false
+    }).setView([lat, lon], isDefault ? 5 : 16);
+
+    const googleRoadmap = L.tileLayer("https://mt1.google.com/vt/lyrs=m&x={x}&y={y}&z={z}", { maxZoom: 20 });
+    googleRoadmap.addTo(branchMap);
+
+    branchMapMarker = L.marker([lat, lon], { icon: pinIcon, draggable: true }).addTo(branchMap);
+    branchMapCircle = L.circle([lat, lon], {
+      color: "#3949AB",
+      fillColor: "#3949AB",
+      fillOpacity: 0.15,
+      radius: radius
+    }).addTo(branchMap);
+
+    const updateFromMap = (newLat, newLon) => {
+      if (latInput) latInput.value = newLat.toFixed(6);
+      if (lonInput) lonInput.value = newLon.toFixed(6);
+      branchMapMarker.setLatLng([newLat, newLon]);
+      branchMapCircle.setLatLng([newLat, newLon]);
+    };
+
+    branchMap.on("click", (e) => updateFromMap(e.latlng.lat, e.latlng.lng));
+    branchMapMarker.on("dragend", (e) => {
+      const pos = e.target.getLatLng();
+      updateFromMap(pos.lat, pos.lng);
+    });
+
+    if (radiusInput) {
+      radiusInput.addEventListener("input", () => {
+        const rad = parseFloat(radiusInput.value) || 100;
+        if (branchMapCircle) branchMapCircle.setRadius(rad);
+      });
+    }
+  } else {
+    setTimeout(() => {
+      branchMap.invalidateSize();
+      branchMap.setView([lat, lon], isDefault ? 5 : 16);
+      if (branchMapMarker) branchMapMarker.setLatLng([lat, lon]);
+      if (branchMapCircle) {
+        branchMapCircle.setLatLng([lat, lon]);
+        branchMapCircle.setRadius(radius);
+      }
+    }, 200);
+  }
+}
+
+if (btnAdminCreateBranch) {
+  btnAdminCreateBranch.addEventListener("click", () => openBranchModal(null));
+}
+
+if (btnCloseBranchModal) {
+  btnCloseBranchModal.addEventListener("click", () => {
+    if (modalAdminBranch) modalAdminBranch.classList.remove("open");
+  });
+}
+
+if (btnAdminBranchFillGps) {
+  btnAdminBranchFillGps.addEventListener("click", () => {
+    if (currentGpsLocation) {
+      const latInput = document.getElementById("admin-branch-lat");
+      const lonInput = document.getElementById("admin-branch-lon");
+      if (latInput) latInput.value = currentGpsLocation.lat.toFixed(6);
+      if (lonInput) lonInput.value = currentGpsLocation.lon.toFixed(6);
+      initOrRefreshBranchMap();
+    } else {
+      navigator.geolocation.getCurrentPosition(
+        (pos) => {
+          currentGpsLocation = { lat: pos.coords.latitude, lon: pos.coords.longitude };
+          const latInput = document.getElementById("admin-branch-lat");
+          const lonInput = document.getElementById("admin-branch-lon");
+          if (latInput) latInput.value = pos.coords.latitude.toFixed(6);
+          if (lonInput) lonInput.value = pos.coords.longitude.toFixed(6);
+          initOrRefreshBranchMap();
+        },
+        (err) => alert("Could not fetch GPS: " + err.message),
+        { enableHighAccuracy: true, timeout: 10000 }
+      );
+    }
+  });
+}
+
+if (formAdminBranch) {
+  formAdminBranch.addEventListener("submit", async (e) => {
+    e.preventDefault();
+    const idInput = document.getElementById("admin-branch-id");
+    const nameInput = document.getElementById("admin-branch-name");
+    const inHInput = document.getElementById("admin-branch-in-hour");
+    const inMInput = document.getElementById("admin-branch-in-min");
+    const outHInput = document.getElementById("admin-branch-out-hour");
+    const outMInput = document.getElementById("admin-branch-out-min");
+    const latInput = document.getElementById("admin-branch-lat");
+    const lonInput = document.getElementById("admin-branch-lon");
+    const radiusInput = document.getElementById("admin-branch-radius");
+
+    const name = nameInput.value.trim();
+    if (!name) {
+      alert("Please enter a branch name.");
+      return;
+    }
+
+    const branchId = idInput.value || `branch_${Date.now()}`;
+    const payload = {
+      id: branchId,
+      name: name,
+      checkInTimeHours: parseInt(inHInput.value) || 9,
+      checkInTimeMinutes: parseInt(inMInput.value) || 0,
+      checkOutTimeHours: parseInt(outHInput.value) || 17,
+      checkOutTimeMinutes: parseInt(outMInput.value) || 0,
+      targetLatitude: parseFloat(latInput.value) || 0,
+      targetLongitude: parseFloat(lonInput.value) || 0,
+      targetRadiusMeters: parseFloat(radiusInput.value) || 100,
+      updatedAt: Date.now()
+    };
+
+    try {
+      const db = getDb();
+      await setDoc(doc(db, "branches", branchId), payload, { merge: true });
+      alert(`Branch "${name}" saved successfully!`);
+      if (modalAdminBranch) modalAdminBranch.classList.remove("open");
+      renderAdminBranchesList();
+      refreshAdminViews();
+    } catch (err) {
+      console.error("Save branch error:", err);
+      try {
+        const fallbackDb = fallbackToDefaultDb();
+        await setDoc(doc(fallbackDb, "branches", branchId), payload, { merge: true });
+        alert(`Branch "${name}" saved successfully!`);
+        if (modalAdminBranch) modalAdminBranch.classList.remove("open");
+        renderAdminBranchesList();
+        refreshAdminViews();
+      } catch (err2) {
+        alert("Failed to save branch: " + err2.message);
+      }
+    }
   });
 }
 

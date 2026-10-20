@@ -12,6 +12,7 @@ interface DataRepository {
     val leaveRequests: StateFlow<List<LeaveRequest>>
     val messages: StateFlow<List<ChatMessage>>
     val appConfig: StateFlow<AppConfig?>
+    val branches: StateFlow<List<Branch>>
     var currentLoggedInUser: String?
     var isAdmin: Boolean
 
@@ -25,6 +26,8 @@ interface DataRepository {
     suspend fun updateLeaveRequestStatus(id: String, status: LeaveStatus)
     suspend fun sendMessage(message: ChatMessage)
     suspend fun markMessageAsRead(messageId: String)
+    suspend fun saveBranch(branch: Branch)
+    suspend fun deleteBranch(branchId: String)
 }
 
 fun DataRepository(context: Context): DataRepository = FirebaseDataRepositoryImpl(context)

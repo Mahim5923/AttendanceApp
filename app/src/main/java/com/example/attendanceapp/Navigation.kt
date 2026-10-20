@@ -150,6 +150,13 @@ fun MainNavigation() {
                     modifier = Modifier.safeDrawingPadding()
                 )
             }
+            entry<ManageBranches> {
+                ManageBranchesScreen(
+                    viewModel = viewModel,
+                    onNavigateBack = { backStack.removeLastOrNull() },
+                    modifier = Modifier.safeDrawingPadding()
+                )
+            }
             entry<ChatListScreenKey> {
                 ChatListScreen(
                     viewModel = viewModel,

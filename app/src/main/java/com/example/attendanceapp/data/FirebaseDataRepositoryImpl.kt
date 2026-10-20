@@ -46,6 +46,9 @@ class FirebaseDataRepositoryImpl(private val context: Context) : DataRepository 
     private val _appConfig = MutableStateFlow<AppConfig?>(null)
     override val appConfig: StateFlow<AppConfig?> = _appConfig
 
+    private val _branches = MutableStateFlow<List<Branch>>(emptyList())
+    override val branches: StateFlow<List<Branch>> = _branches
+
     override var currentLoggedInUser: String? = prefs.getString("currentLoggedInUser", null)
     override var isAdmin: Boolean = prefs.getBoolean("isAdmin", false)
     
@@ -54,6 +57,7 @@ class FirebaseDataRepositoryImpl(private val context: Context) : DataRepository 
     private var settingsListener: com.google.firebase.firestore.ListenerRegistration? = null
     private var leaveRequestsListener: com.google.firebase.firestore.ListenerRegistration? = null
     private var messagesListener: com.google.firebase.firestore.ListenerRegistration? = null
+    private var branchesListener: com.google.firebase.firestore.ListenerRegistration? = null
 
     init {
         setupConfigListener()
@@ -87,6 +91,32 @@ class FirebaseDataRepositoryImpl(private val context: Context) : DataRepository 
         settingsListener?.remove()
         leaveRequestsListener?.remove()
         messagesListener?.remove()
+        branchesListener?.remove()
+
+        branchesListener = db.collection("branches").addSnapshotListener { snapshot, error ->
+            if (error != null) {
+                handleFirestoreError(error)
+                return@addSnapshotListener
+            }
+            if (snapshot != null) {
+                val list = snapshot.documents.mapNotNull { doc ->
+                    try {
+                        Branch(
+                            id = doc.id,
+                            name = doc.getString("name") ?: doc.id,
+                            checkInTimeHours = doc.getLong("checkInTimeHours")?.toInt() ?: 9,
+                            checkInTimeMinutes = doc.getLong("checkInTimeMinutes")?.toInt() ?: 0,
+                            checkOutTimeHours = doc.getLong("checkOutTimeHours")?.toInt() ?: 17,
+                            checkOutTimeMinutes = doc.getLong("checkOutTimeMinutes")?.toInt() ?: 0,
+                            targetLatitude = doc.getDouble("targetLatitude") ?: 0.0,
+                            targetLongitude = doc.getDouble("targetLongitude") ?: 0.0,
+                            targetRadiusMeters = doc.getDouble("targetRadiusMeters") ?: 100.0
+                        )
+                    } catch (e: Exception) { null }
+                }
+                _branches.value = list
+            }
+        }
 
         val user = currentLoggedInUser ?: return
 
@@ -128,6 +158,7 @@ class FirebaseDataRepositoryImpl(private val context: Context) : DataRepository 
                             displayName = it.getString("displayName") ?: "",
                             profilePhotoUri = it.getString("profilePhotoUri") ?: "",
                             baseSalary = it.getDouble("baseSalary") ?: 0.0,
+                            branch = it.getString("branch") ?: "",
                             checkInTimeHours = it.getLong("checkInTimeHours")?.toInt() ?: 9,
                             checkInTimeMinutes = it.getLong("checkInTimeMinutes")?.toInt() ?: 0,
                             checkOutTimeHours = it.getLong("checkOutTimeHours")?.toInt() ?: 17,
@@ -271,10 +302,12 @@ class FirebaseDataRepositoryImpl(private val context: Context) : DataRepository 
         settingsListener?.remove()
         leaveRequestsListener?.remove()
         messagesListener?.remove()
+        branchesListener?.remove()
         _attendances.value = emptyList()
         _settings.value = emptyList()
         _leaveRequests.value = emptyList()
         _messages.value = emptyList()
+        _branches.value = emptyList()
     }
 
     private suspend fun uploadImageIfLocal(uriString: String): String = withContext(Dispatchers.IO) {
@@ -327,7 +360,22 @@ class FirebaseDataRepositoryImpl(private val context: Context) : DataRepository 
     }
     
     override fun getEmployeeSettings(employeeId: String): EmployeeSettings {
-        return _settings.value.find { it.employeeId == employeeId } ?: EmployeeSettings(employeeId = employeeId)
+        val raw = _settings.value.find { it.employeeId == employeeId } ?: EmployeeSettings(employeeId = employeeId)
+        if (raw.branch.isNotBlank()) {
+            val b = _branches.value.find { it.name.equals(raw.branch, ignoreCase = true) || it.id.equals(raw.branch, ignoreCase = true) }
+            if (b != null) {
+                return raw.copy(
+                    checkInTimeHours = b.checkInTimeHours,
+                    checkInTimeMinutes = b.checkInTimeMinutes,
+                    checkOutTimeHours = b.checkOutTimeHours,
+                    checkOutTimeMinutes = b.checkOutTimeMinutes,
+                    targetLatitude = b.targetLatitude,
+                    targetLongitude = b.targetLongitude,
+                    targetRadiusMeters = b.targetRadiusMeters
+                )
+            }
+        }
+        return raw
     }
 
     override suspend fun saveEmployeeSettings(setting: EmployeeSettings) {
@@ -341,6 +389,7 @@ class FirebaseDataRepositoryImpl(private val context: Context) : DataRepository 
                     "displayName" to toSave.displayName,
                     "profilePhotoUri" to toSave.profilePhotoUri,
                     "baseSalary" to toSave.baseSalary,
+                    "branch" to toSave.branch,
                     "checkInTimeHours" to toSave.checkInTimeHours,
                     "checkInTimeMinutes" to toSave.checkInTimeMinutes,
                     "checkOutTimeHours" to toSave.checkOutTimeHours,
@@ -385,6 +434,31 @@ class FirebaseDataRepositoryImpl(private val context: Context) : DataRepository 
     override suspend fun updateLeaveRequestStatus(id: String, status: LeaveStatus) {
         runWithDb { firestore ->
             firestore.collection("leaveRequests").document(id).update(mapOf("status" to status.name)).await()
+        }
+    }
+
+    override suspend fun saveBranch(branch: Branch) {
+        val id = if (branch.id.isBlank()) UUID.randomUUID().toString() else branch.id
+        val map = hashMapOf(
+            "id" to id,
+            "name" to branch.name,
+            "checkInTimeHours" to branch.checkInTimeHours,
+            "checkInTimeMinutes" to branch.checkInTimeMinutes,
+            "checkOutTimeHours" to branch.checkOutTimeHours,
+            "checkOutTimeMinutes" to branch.checkOutTimeMinutes,
+            "targetLatitude" to branch.targetLatitude,
+            "targetLongitude" to branch.targetLongitude,
+            "targetRadiusMeters" to branch.targetRadiusMeters,
+            "updatedAt" to System.currentTimeMillis()
+        )
+        runWithDb { firestore ->
+            firestore.collection("branches").document(id).set(map, SetOptions.merge()).await()
+        }
+    }
+
+    override suspend fun deleteBranch(branchId: String) {
+        runWithDb { firestore ->
+            firestore.collection("branches").document(branchId).delete().await()
         }
     }
 }

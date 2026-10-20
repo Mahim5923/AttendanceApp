@@ -97,6 +97,12 @@ fun CalendarAttendanceView(
                             Calendar.getInstance().apply { timeInMillis = it.timestamp }.get(Calendar.YEAR) == dayCal.get(Calendar.YEAR) &&
                             Calendar.getInstance().apply { timeInMillis = it.timestamp }.get(Calendar.DAY_OF_YEAR) == dayCal.get(Calendar.DAY_OF_YEAR)
                         }
+                        val hasOut = attendances.any {
+                            it.type == AttendanceType.OUT &&
+                            Calendar.getInstance().apply { timeInMillis = it.timestamp }.get(Calendar.YEAR) == dayCal.get(Calendar.YEAR) &&
+                            Calendar.getInstance().apply { timeInMillis = it.timestamp }.get(Calendar.DAY_OF_YEAR) == dayCal.get(Calendar.DAY_OF_YEAR)
+                        }
+                        val isPresent = hasIn && hasOut
                         
                         val isApprovedLeave = leaves.any {
                             it.status == com.example.attendanceapp.data.LeaveStatus.APPROVED &&
@@ -108,11 +114,11 @@ fun CalendarAttendanceView(
                         val isWeekOff = settings.weekOffs.contains(dayCal.get(Calendar.DAY_OF_WEEK))
                         
                         val bgColor = when {
-                            isApprovedLeave -> Color(0xFFFFC107) // Yellow
-                            hasIn -> Color(0xFF4CAF50) // Green
                             isWeekOff -> Color.Gray // Gray
+                            isApprovedLeave -> Color(0xFFFFC107) // Yellow
+                            isPresent -> Color(0xFF4CAF50) // Green (both IN and OUT completed)
                             isFuture -> Color.Transparent
-                            else -> Color(0xFFF44336) // Red (Past workday, no IN)
+                            else -> Color(0xFFF44336) // Red (Absent - only marked present if both IN and OUT are done)
                         }
 
                         Box(

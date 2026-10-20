@@ -26,6 +26,8 @@ import com.example.attendanceapp.data.AttendanceType
 
 @Serializable data object ManageLeaves : NavKey
 
+@Serializable data object ManageBranches : NavKey
+
 @Serializable data object ChatListScreenKey : NavKey
 
 @Serializable data class ChatScreenKey(val chatPartnerId: String, val chatPartnerName: String) : NavKey

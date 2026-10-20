@@ -1,0 +1,733 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Attendance App</title>
+
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <meta name="apple-mobile-web-app-title" content="AttendanceApp">
+  <link rel="apple-touch-icon" href="icons/logo.png">
+  <link rel="icon" type="image/png" href="icons/logo.png">
+  <link rel="manifest" href="manifest.json">
+  <meta name="theme-color" content="#FFFFFF">
+
+  <link rel="stylesheet" href="css/style.css?v=3.5">
+
+  <!-- Interactive Map (Leaflet & Google Maps style Geofence Picker) -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+</head>
+
+<body>
+
+  <div id="app-container">
+
+    <!-- ==========================================
+         1. LOGIN SCREEN (100% Matches Android LoginScreen.kt)
+         ========================================== -->
+    <div class="view active" id="view-login">
+      <div
+        style="flex: 1; display: flex; flex-direction: column; justify-content: center; align-items: center; text-align: center;">
+
+        <!-- 220dp Banner Logo -->
+        <img src="icons/logo.png" alt="Company Logo" class="android-banner">
+
+        <form id="login-form" style="width: 100%;" novalidate onsubmit="event.preventDefault(); return false;">
+          <div class="form-group">
+            <label class="field-label" id="lbl-email">Email</label>
+            <input type="text" id="login-email" class="outlined-field" placeholder="Enter your email or admin" required
+              autocomplete="username">
+          </div>
+
+          <div class="form-group">
+            <label class="field-label" id="lbl-password">Password</label>
+            <input type="password" id="login-password" class="outlined-field" placeholder="Enter your password" required
+              autocomplete="current-password">
+          </div>
+
+          <div id="login-error-banner" class="error-banner" style="display: none;"></div>
+          <div id="login-success-banner" class="success-banner" style="display: none;"></div>
+
+          <button type="button" class="btn-m3" id="btn-login-submit"
+            onclick="if (window.triggerLogin) window.triggerLogin();" style="margin-bottom: 8px;">
+            <span id="txt-login-btn">Login</span>
+          </button>
+        </form>
+
+        <div style="margin-top: 20px;">
+          <button type="button" class="btn-text" id="btn-lang-toggle" style="font-size: 1.1rem; font-weight: 500;">
+            हिंदी
+          </button>
+        </div>
+
+      </div>
+    </div>
+
+    <!-- ==========================================
+         2. MAIN SCREEN (100% Matches Android MainScreen.kt)
+         ========================================== -->
+    <div class="view" id="view-main">
+      <!-- Top Right "Edit Profile" Button -->
+      <div class="main-top-bar">
+        <button type="button" class="btn-text" id="btn-edit-profile">
+          Edit Profile
+        </button>
+      </div>
+
+      <div style="flex: 1; display: flex; flex-direction: column; align-items: center;">
+        <!-- Banner Logo -->
+        <img src="icons/logo.png" alt="Company Logo" class="android-banner" style="height: 180px; margin-bottom: 16px;">
+
+        <!-- Live Date & Time -->
+        <div class="time-heading" id="main-live-datetime">
+          Loading date & time...
+        </div>
+
+        <!-- Welcome Text -->
+        <div class="welcome-text" id="main-welcome-text">
+          Welcome, Employee
+        </div>
+
+        <!-- Side-by-Side [ In ] and [ Out ] Buttons -->
+        <div class="in-out-row" style="width: 100%;">
+          <button type="button" class="btn-m3" id="btn-clock-in">In</button>
+          <button type="button" class="btn-m3" id="btn-clock-out">Out</button>
+        </div>
+
+        <!-- Action Buttons -->
+        <button type="button" class="btn-m3" id="btn-view-attendance">View My Attendance</button>
+        <button type="button" class="btn-m3" id="btn-request-leave">Request Leave</button>
+        <button type="button" class="btn-m3" id="btn-salary-calc">Salary Calculator</button>
+
+        <button type="button" class="btn-text" id="btn-logout" style="margin-top: 16px;">Logout</button>
+      </div>
+
+      <!-- Floating Action Button for Chat (Bottom-Right) -->
+      <button class="fab-chat" id="fab-chat-btn" title="Chat">💬</button>
+    </div>
+
+    <!-- ==========================================
+         3. VIEW ATTENDANCE SCREEN (With Calendar Attendance View)
+         ========================================== -->
+    <div class="view" id="view-history">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h2 style="font-size: 1.3rem;">My Attendance</h2>
+        <button class="btn-text" id="btn-back-from-history">Back</button>
+      </div>
+
+      <!-- Month Navigation Bar -->
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #F8F9FA; border-radius: 12px; margin-bottom: 12px;">
+        <button class="btn-text" id="btn-cal-prev" style="padding: 4px 8px;">◀</button>
+        <div id="cal-month-title" style="font-weight: 700; font-size: 1rem;">Month Year</div>
+        <button class="btn-text" id="btn-cal-next" style="padding: 4px 8px;">▶</button>
+      </div>
+
+      <!-- Calendar Grid -->
+      <div id="cal-grid-container"
+        style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; margin-bottom: 12px;">
+      </div>
+
+      <!-- Legend -->
+      <div
+        style="display: flex; justify-content: space-around; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 16px;">
+        <div><span style="color: #2E7D32;">●</span> Present</div>
+        <div><span style="color: #E53935;">●</span> Absent</div>
+        <div><span style="color: #FB8C00;">●</span> Leave</div>
+        <div><span style="color: #9E9E9E;">●</span> Week Off</div>
+      </div>
+
+      <h3 style="font-size: 1rem; margin-bottom: 8px;" id="history-selected-date-title">Selected Date Records</h3>
+      <div id="history-container" style="overflow-y: auto; flex: 1;"></div>
+    </div>
+
+    <!-- ==========================================
+         4. REQUEST LEAVE SCREEN
+         ========================================== -->
+    <div class="view" id="view-leave">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="font-size: 1.3rem;">Request Leave</h2>
+        <button class="btn-text" id="btn-back-from-leave">Back</button>
+      </div>
+
+      <form id="request-leave-form" style="margin-bottom: 24px;">
+        <div class="form-group">
+          <label class="field-label">Leave Date</label>
+          <input type="date" id="input-leave-date" class="outlined-field" required>
+        </div>
+        <div class="form-group">
+          <label class="field-label">Reason for leave</label>
+          <input type="text" id="input-leave-reason" class="outlined-field" placeholder="Enter reason" required>
+        </div>
+        <button type="submit" class="btn-m3" id="btn-submit-leave">Submit Request</button>
+      </form>
+
+      <h3 style="font-size: 1.1rem; margin-bottom: 12px;">My Leave Requests</h3>
+      <div id="leaves-history-container" style="overflow-y: auto; flex: 1;"></div>
+    </div>
+
+    <!-- ==========================================
+         5. SALARY CALCULATOR SCREEN
+         ========================================== -->
+    <div class="view" id="view-salary">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="font-size: 1.3rem;">Salary Calculator Dashboard</h2>
+        <button class="btn-text" id="btn-back-from-salary">Back</button>
+      </div>
+
+      <div class="form-group">
+        <label class="field-label">Select Month</label>
+        <input type="month" id="salary-month-select" class="outlined-field">
+      </div>
+
+      <div
+        style="background: #F8F9FA; border-radius: 16px; padding: 20px; border: 1px solid #E0E0E0; margin-bottom: 16px;">
+        <div style="font-size: 1.1rem; font-weight: 600; margin-bottom: 10px;" id="disp-base-salary">Base Salary: ₹0
+        </div>
+        <div style="color: var(--text-secondary); margin-bottom: 6px;" id="disp-working-days">Total Working Days
+          (Month): 0</div>
+        <div style="color: var(--text-secondary); margin-bottom: 2px;" id="disp-present-days">Days Present: 0</div>
+        <div style="font-size: 0.74rem; color: #757575; margin-bottom: 6px;">(Requires both Check-IN & Check-OUT)</div>
+        <div style="color: var(--primary); margin-bottom: 6px;" id="disp-approved-leaves">Approved Leaves: 0</div>
+        <div style="color: var(--error); margin-bottom: 6px;" id="disp-absent-days">Days Absent: 0</div>
+      </div>
+
+      <div
+        style="background: #F8F9FA; border-radius: 16px; padding: 20px; border: 1px solid #E0E0E0; margin-bottom: 20px;">
+        <div style="color: var(--text-secondary); margin-bottom: 6px;" id="disp-per-day">Per Day Salary: ₹0</div>
+        <div style="color: var(--error); margin-bottom: 12px;" id="disp-deduction">Total Deduction: ₹0</div>
+        <div style="font-size: 1.3rem; font-weight: 700; color: #2E7D32;" id="disp-net-salary">Estimated Net Salary: ₹0
+        </div>
+      </div>
+
+      <button type="button" class="btn-m3 btn-m3-secondary" id="btn-export-csv-sal">Export Monthly Report
+        (.csv)</button>
+    </div>
+
+    <!-- ==========================================
+         6. CHAT SCREEN
+         ========================================== -->
+    <div class="view" id="view-chat">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h2 style="font-size: 1.3rem;" id="chat-title">Chat with Admin</h2>
+        <button class="btn-text" id="btn-back-from-chat">Back</button>
+      </div>
+      <div class="chat-thread" id="chat-thread-container"></div>
+      <form id="chat-form" style="display: flex; gap: 8px; margin-top: 10px;">
+        <input type="text" id="chat-input-msg" class="outlined-field" placeholder="Type a message..." required
+          style="flex: 1;">
+        <button type="submit" class="btn-m3" style="width: 80px; margin-bottom: 0;">Send</button>
+      </form>
+    </div>
+
+    <!-- ==========================================
+         7. PROFILE SCREEN
+         ========================================== -->
+    <div class="view" id="view-profile">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 20px;">
+        <h2 style="font-size: 1.3rem;">Edit Profile</h2>
+        <button class="btn-text" id="btn-back-from-profile">Back</button>
+      </div>
+
+      <div style="text-align: center; margin-bottom: 24px;">
+        <img id="avatar-preview" src="icons/logo.png" alt="Avatar"
+          style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); margin-bottom: 12px;">
+        <div>
+          <input type="file" id="avatar-file-input" accept="image/*" style="display: none;">
+          <button type="button" class="btn-text" onclick="document.getElementById('avatar-file-input').click()">Change
+            Photo</button>
+        </div>
+      </div>
+
+      <form id="profile-edit-form">
+        <div class="form-group">
+          <label class="field-label">Email</label>
+          <input type="text" id="profile-email-disp" class="outlined-field" readonly disabled>
+        </div>
+        <div class="form-group">
+          <label class="field-label">Display Name</label>
+          <input type="text" id="profile-display-name" class="outlined-field" required>
+        </div>
+        <button type="submit" class="btn-m3">Save Profile</button>
+      </form>
+    </div>
+
+    <!-- ==========================================
+         8. ADMIN DASHBOARD SCREEN (100% Matches Android AdminDashboardScreen.kt)
+         ========================================== -->
+    <div class="view" id="view-admin">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h1 style="font-size: 1.4rem; font-weight: 700;">Admin Dashboard</h1>
+        <button class="btn-text" id="btn-admin-logout" style="font-size: 0.95rem;">Logout</button>
+      </div>
+
+      <!-- Manage Leave Requests (56dp Red Button) -->
+      <button type="button" class="btn-m3" id="btn-admin-to-leaves" style="margin-bottom: 14px;">
+        Manage Leave Requests
+      </button>
+
+      <!-- View Monthly Report (56dp Red Button) -->
+      <button type="button" class="btn-m3" id="btn-admin-to-report" style="margin-bottom: 14px;">
+        View Monthly Report
+      </button>
+
+      <!-- Manage Branches Button (56dp Red Button) -->
+      <button type="button" class="btn-m3" id="btn-admin-to-branches" style="margin-bottom: 24px;">
+        Manage Branches & Shifts
+      </button>
+
+      <!-- Employees Header with Count -->
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+        <h2 style="font-size: 1.15rem; font-weight: 600; margin-bottom: 0;">Employees</h2>
+        <span id="admin-staff-count" style="font-size: 0.85rem; color: var(--text-secondary); font-weight: 500;"></span>
+      </div>
+
+      <!-- Branch Filter Bar -->
+      <div id="admin-branch-filter-container"
+        style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 12px; scrollbar-width: none;">
+      </div>
+
+      <!-- List of Employee Cards (Matches Android Card with 50dp avatar, name, and email) -->
+      <div id="admin-staff-list" style="overflow-y: auto; flex: 1;"></div>
+
+      <!-- Floating Action Button for Chat (Bottom-Right) -->
+      <button class="fab-chat" id="fab-admin-chat-btn" title="Chat">💬</button>
+    </div>
+
+    <!-- ==========================================
+         9. ADMIN MANAGE LEAVES SCREEN (100% Matches Android ManageLeavesScreen.kt)
+         ========================================== -->
+    <div class="view" id="view-admin-leaves">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
+        <h1 style="font-size: 1.3rem; font-weight: 700;">Manage Leave Requests</h1>
+        <button class="btn-text" id="btn-back-from-admin-leaves">Back</button>
+      </div>
+
+      <!-- Branch Filter Bar for Leaves -->
+      <div id="admin-leaves-branch-filter-container"
+        style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 12px; scrollbar-width: none;">
+      </div>
+
+      <div id="admin-leaves-list" style="overflow-y: auto; flex: 1;"></div>
+    </div>
+
+    <!-- ==========================================
+         10. ADMIN MONTHLY REPORT SCREEN (100% Matches Android MonthlyReportScreen.kt)
+         ========================================== -->
+    <div class="view" id="view-admin-monthly-report">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h1 style="font-size: 1.3rem; font-weight: 700;">Monthly Report</h1>
+        <button class="btn-text" id="btn-back-from-admin-report">Back</button>
+      </div>
+
+      <!-- Month Switcher with < and > (Matches Android) -->
+      <div
+        style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #F8F9FA; border-radius: 12px; margin-bottom: 12px;">
+        <button class="btn-text" id="btn-report-prev-month" style="font-size: 1.2rem; padding: 4px 10px;">◀</button>
+        <div id="disp-report-month-year" style="font-size: 1.05rem; font-weight: 700;">Month Year</div>
+        <button class="btn-text" id="btn-report-next-month" style="font-size: 1.2rem; padding: 4px 10px;">▶</button>
+      </div>
+
+      <!-- Branch Filter Bar for Monthly Report -->
+      <div id="admin-report-branch-filter-container"
+        style="display: flex; gap: 8px; overflow-x: auto; padding-bottom: 10px; margin-bottom: 12px; scrollbar-width: none;">
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <button type="button" class="btn-text" id="btn-admin-export-csv"
+          style="width: 100%; border: 1.5px solid var(--primary); border-radius: 12px; height: 44px; font-weight: 600;">
+          Export Monthly Report (.csv)
+        </button>
+      </div>
+
+      <div id="admin-monthly-report-cards" style="overflow-y: auto; flex: 1;"></div>
+    </div>
+
+    <!-- ==========================================
+         11. ADMIN EMPLOYEE DETAIL & ATTENDANCE (100% Matches Android AdminEmployeeDetailScreen.kt)
+         ========================================== -->
+    <div class="view" id="view-admin-employee-detail">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
+        <h1 style="font-size: 1.25rem; font-weight: 700;" id="admin-detail-title">Details: Employee</h1>
+        <div style="display: flex; gap: 8px;">
+          <button type="button" class="btn-text" id="btn-toggle-admin-emp-settings"
+            style="font-size: 0.9rem; padding: 6px 12px; border: 1.5px solid var(--primary); border-radius: 8px; font-weight: 600;">⚙️
+            Settings</button>
+          <button type="button" class="btn-text" id="btn-back-from-admin-detail">Back</button>
+        </div>
+      </div>
+
+      <div style="overflow-y: auto; flex: 1; padding-bottom: 24px;">
+        <!-- Employee Shift & Salary Info Card -->
+        <div
+          style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 14px; padding: 16px; margin-bottom: 16px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
+          <div style="font-size: 0.92rem; margin-bottom: 6px;">
+            <span style="color: var(--text-secondary);">Branch:</span>
+            <span style="font-weight: 600;" id="admin-detail-disp-branch">Unassigned</span>
+          </div>
+          <div style="font-size: 0.92rem; margin-bottom: 6px;">
+            <span style="color: var(--text-secondary);">Base Salary:</span>
+            <span style="font-weight: 600;" id="admin-detail-disp-salary">₹30,000</span>
+          </div>
+          <div style="font-size: 0.92rem; margin-bottom: 6px;">
+            <span style="color: var(--text-secondary);">Shift:</span>
+            <span style="font-weight: 600;" id="admin-detail-disp-shift">09:00 - 17:00</span>
+          </div>
+          <div style="font-size: 0.92rem;">
+            <span style="color: var(--text-secondary);">Week Offs:</span>
+            <span style="font-weight: 600;" id="admin-detail-disp-offs">Sunday, Saturday</span>
+          </div>
+        </div>
+
+        <!-- Attendance History Section -->
+        <h2 style="font-size: 1.15rem; font-weight: 700; margin-bottom: 12px; color: var(--text-primary);">Attendance
+          History</h2>
+
+        <!-- Month Navigation -->
+        <div
+          style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #F8F9FA; border-radius: 12px; margin-bottom: 12px;">
+          <button class="btn-text" id="btn-admin-emp-prev-month"
+            style="font-size: 1.2rem; padding: 4px 10px;">◀</button>
+          <div id="disp-admin-emp-month-year" style="font-size: 1.05rem; font-weight: 700;">Month Year</div>
+          <button class="btn-text" id="btn-admin-emp-next-month"
+            style="font-size: 1.2rem; padding: 4px 10px;">▶</button>
+        </div>
+
+        <!-- Calendar Days Grid (7 columns) -->
+        <div id="admin-emp-calendar-grid"
+          style="display: grid; grid-template-columns: repeat(7, 1fr); gap: 4px; text-align: center; margin-bottom: 12px; background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 12px; padding: 12px 8px;">
+        </div>
+
+        <!-- Legend -->
+        <div
+          style="display: flex; justify-content: space-around; font-size: 0.78rem; color: var(--text-secondary); margin-bottom: 16px; padding: 8px; background: #FAFAFA; border-radius: 8px;">
+          <div style="display: flex; align-items: center; gap: 4px;"><span
+              style="width: 8px; height: 8px; border-radius: 50%; background: #2E7D32;"></span> Present</div>
+          <div style="display: flex; align-items: center; gap: 4px;"><span
+              style="width: 8px; height: 8px; border-radius: 50%; background: #D32F2F;"></span> Absent</div>
+          <div style="display: flex; align-items: center; gap: 4px;"><span
+              style="width: 8px; height: 8px; border-radius: 50%; background: #F57C00;"></span> Leave</div>
+          <div style="display: flex; align-items: center; gap: 4px;"><span
+              style="width: 8px; height: 8px; border-radius: 50%; background: #9E9E9E;"></span> Week Off</div>
+        </div>
+
+        <div style="border-top: 1px solid #EEEEEE; margin: 12px 0;"></div>
+
+        <!-- Selected Date Header & Attendance List -->
+        <h3 id="admin-emp-selected-date-title"
+          style="font-size: 1.02rem; font-weight: 700; margin-bottom: 10px; color: var(--text-primary);">Attendances for
+          Date</h3>
+        <div id="admin-emp-date-records" style="display: flex; flex-direction: column; gap: 10px; margin-bottom: 24px;">
+        </div>
+      </div>
+    </div>
+
+    <!-- Modal for Editing Employee Settings (from Details screen) -->
+    <div class="modal-overlay" id="modal-admin-employee-settings">
+      <div class="modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h2 style="font-size: 1.2rem; font-weight: 700;" id="modal-settings-title">Edit Settings</h2>
+          <button type="button" class="btn-text" id="btn-close-emp-settings-modal" style="font-size: 1.3rem;">✕</button>
+        </div>
+
+        <form id="form-admin-employee-detail">
+          <input type="hidden" id="admin-detail-emp-id">
+
+          <div class="form-group">
+            <label class="field-label">Display Name</label>
+            <input type="text" id="admin-detail-display-name" class="outlined-field" required>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label" style="font-weight: 600;"> Assigned Branch</label>
+            <select id="admin-detail-branch" class="outlined-field"
+              style="width: 100%; height: 48px; font-size: 0.95rem;">
+              <option value="">-- No Branch (Individual Settings) --</option>
+            </select>
+            <div id="admin-detail-branch-hint"
+              style="font-size: 0.78rem; color: #C62828; background: #FFEBEE; border: 1px solid #FFCDD2; padding: 8px 10px; border-radius: 8px; margin-top: 6px; display: none;">
+              ℹ️ Shift times and office location are synced from this branch. Week offs and base salary remain
+              individual per employee.
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label">Base Salary (₹)</label>
+            <input type="number" id="admin-detail-base-salary" class="outlined-field" required>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-bottom: 14px;">
+            <div style="flex: 1;">
+              <label class="field-label">Check-In Hour (24h)</label>
+              <input type="number" id="admin-detail-in-hour" class="outlined-field" min="0" max="23" required>
+            </div>
+            <div style="flex: 1;">
+              <label class="field-label">Min</label>
+              <input type="number" id="admin-detail-in-min" class="outlined-field" min="0" max="59" required>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-bottom: 14px;">
+            <div style="flex: 1;">
+              <label class="field-label">Check-Out Hour (24h)</label>
+              <input type="number" id="admin-detail-out-hour" class="outlined-field" min="0" max="23" required>
+            </div>
+            <div style="flex: 1;">
+              <label class="field-label">Min</label>
+              <input type="number" id="admin-detail-out-min" class="outlined-field" min="0" max="59" required>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label" style="font-weight: 600; font-size: 0.95rem; margin-bottom: 8px;">Select Week
+              Offs:</label>
+            <div style="display: flex; flex-direction: column; gap: 6px;">
+              <label style="display: flex; align-items: center; gap: 10px; font-size: 0.92rem;"><input type="checkbox"
+                  id="chk-off-2" style="width: 18px; height: 18px;"> Monday</label>
+              <label style="display: flex; align-items: center; gap: 10px; font-size: 0.92rem;"><input type="checkbox"
+                  id="chk-off-3" style="width: 18px; height: 18px;"> Tuesday</label>
+              <label style="display: flex; align-items: center; gap: 10px; font-size: 0.92rem;"><input type="checkbox"
+                  id="chk-off-4" style="width: 18px; height: 18px;"> Wednesday</label>
+              <label style="display: flex; align-items: center; gap: 10px; font-size: 0.92rem;"><input type="checkbox"
+                  id="chk-off-5" style="width: 18px; height: 18px;"> Thursday</label>
+              <label style="display: flex; align-items: center; gap: 10px; font-size: 0.92rem;"><input type="checkbox"
+                  id="chk-off-6" style="width: 18px; height: 18px;"> Friday</label>
+              <label style="display: flex; align-items: center; gap: 10px; font-size: 0.92rem;"><input type="checkbox"
+                  id="chk-off-7" style="width: 18px; height: 18px;"> Saturday</label>
+              <label style="display: flex; align-items: center; gap: 10px; font-size: 0.92rem;"><input type="checkbox"
+                  id="chk-off-1" style="width: 18px; height: 18px;"> Sunday</label>
+            </div>
+          </div>
+
+          <div class="form-group">
+            <label class="field-label"
+              style="font-weight: 700; font-size: 0.95rem; margin-bottom: 8px; display: flex; justify-content: space-between; align-items: center;">
+              <span> Office Location & Geofence</span>
+              <span
+                style="font-size: 0.72rem; background: var(--surface-variant); padding: 3px 8px; border-radius: 10px; font-weight: 600; color: var(--primary);">Interactive
+                Map</span>
+            </label>
+
+            <!-- Search Address / Places -->
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <input type="text" id="admin-map-search-input" class="outlined-field"
+                placeholder="Search address, landmark or office..." style="margin-bottom: 0; flex: 1;">
+              <button type="button" class="btn-m3" id="btn-admin-map-search"
+                style="margin-bottom: 0; padding: 0 16px; white-space: nowrap; height: 46px; font-size: 0.88rem;">
+                Search
+              </button>
+            </div>
+
+            <!-- Interactive Map View -->
+            <div id="admin-map-container" style="position: relative; margin-bottom: 8px;">
+              <div id="admin-map-view"
+                style="width: 100%; height: 260px; border-radius: 12px; border: 1.5px solid var(--outline); background: #f0f0f0; overflow: hidden; z-index: 1;">
+              </div>
+              <div
+                style="position: absolute; bottom: 6px; left: 8px; right: 8px; z-index: 500; background: rgba(0,0,0,0.7); color: #fff; font-size: 0.72rem; padding: 4px 8px; border-radius: 6px; text-align: center; pointer-events: none;">
+                Tap or drag pin on map to set office location
+              </div>
+            </div>
+
+            <!-- Quick Action Buttons -->
+            <div style="display: flex; gap: 8px; margin-bottom: 10px;">
+              <button type="button" class="btn-text" id="btn-admin-detail-fill-gps"
+                style="border: 1px dashed var(--primary); border-radius: 8px; flex: 1; padding: 8px 10px; font-size: 0.82rem; margin-bottom: 0;">
+                My Current GPS
+              </button>
+              <button type="button" class="btn-text" id="btn-admin-open-gmaps"
+                style="border: 1px dashed var(--outline); border-radius: 8px; padding: 8px 10px; font-size: 0.82rem; margin-bottom: 0;"
+                title="View on Google Maps">
+                Google Maps
+              </button>
+            </div>
+
+            <!-- Coordinates Inputs (Auto-synced with Map Pin) -->
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <div style="flex: 1;">
+                <label class="field-label" style="font-size: 0.78rem;">Target Latitude</label>
+                <input type="number" step="any" id="admin-detail-lat" class="outlined-field"
+                  placeholder="Target Latitude" style="margin-bottom: 0;">
+              </div>
+              <div style="flex: 1;">
+                <label class="field-label" style="font-size: 0.78rem;">Target Longitude</label>
+                <input type="number" step="any" id="admin-detail-lon" class="outlined-field"
+                  placeholder="Target Longitude" style="margin-bottom: 0;">
+              </div>
+            </div>
+
+            <!-- Radius Input -->
+            <div>
+              <label class="field-label" style="font-size: 0.78rem;">Allowed Radius (Meters)</label>
+              <input type="number" id="admin-detail-radius" class="outlined-field"
+                placeholder="Allowed Radius (Meters, default 100)" style="margin-bottom: 4px;">
+              <div style="font-size: 0.73rem; color: var(--text-secondary); margin-bottom: 6px;">
+                Employees must be inside this blue circle to punch attendance.
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-m3">Save Settings</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         12. ADMIN MANAGE BRANCHES SCREEN
+         ========================================== -->
+    <div class="view" id="view-admin-branches">
+      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+        <h1 style="font-size: 1.3rem; font-weight: 700;">Manage Branches</h1>
+        <button type="button" class="btn-text" id="btn-back-from-admin-branches">Back</button>
+      </div>
+
+      <div style="margin-bottom: 16px;">
+        <button type="button" class="btn-m3" id="btn-admin-create-branch">
+          Create New Branch
+        </button>
+      </div>
+
+      <div id="admin-branches-list" style="overflow-y: auto; flex: 1; padding-bottom: 24px;"></div>
+    </div>
+
+    <!-- Modal for Creating/Editing Branch -->
+    <div class="modal-overlay" id="modal-admin-branch">
+      <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h2 style="font-size: 1.2rem; font-weight: 700;" id="modal-branch-title">Create Branch</h2>
+          <button type="button" class="btn-text" id="btn-close-branch-modal" style="font-size: 1.3rem;">✕</button>
+        </div>
+
+        <form id="form-admin-branch">
+          <input type="hidden" id="admin-branch-id">
+
+          <div class="form-group">
+            <label class="field-label">Branch Name</label>
+            <input type="text" id="admin-branch-name" class="outlined-field"
+              placeholder="e.g. Headquarters, North Branch, Downtown" required>
+          </div>
+
+          <div style="font-size: 0.9rem; font-weight: 600; margin-bottom: 4px; color: var(--text-primary);">
+            Branch Shift Schedule
+          </div>
+          <div style="font-size: 0.76rem; color: var(--text-secondary); margin-bottom: 10px;">
+            All employees assigned to this branch share this shift. Week offs are configured individually.
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-bottom: 12px;">
+            <div style="flex: 1;">
+              <label class="field-label">Check-In Hour (24h)</label>
+              <input type="number" id="admin-branch-in-hour" class="outlined-field" min="0" max="23" value="9" required>
+            </div>
+            <div style="flex: 1;">
+              <label class="field-label">Min</label>
+              <input type="number" id="admin-branch-in-min" class="outlined-field" min="0" max="59" value="0" required>
+            </div>
+          </div>
+
+          <div style="display: flex; gap: 10px; margin-bottom: 16px;">
+            <div style="flex: 1;">
+              <label class="field-label">Check-Out Hour (24h)</label>
+              <input type="number" id="admin-branch-out-hour" class="outlined-field" min="0" max="23" value="17"
+                required>
+            </div>
+            <div style="flex: 1;">
+              <label class="field-label">Min</label>
+              <input type="number" id="admin-branch-out-min" class="outlined-field" min="0" max="59" value="0" required>
+            </div>
+          </div>
+
+          <!-- Branch Office Geofence -->
+          <div class="form-group"
+            style="background: #F8F9FA; padding: 12px; border-radius: 10px; border: 1px solid #E0E0E0; margin-bottom: 16px;">
+            <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
+              <label class="field-label" style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0;">📍 Branch
+                Office Location</label>
+              <button type="button" class="btn-text" id="btn-admin-branch-fill-gps"
+                style="border: 1px dashed var(--primary); border-radius: 8px; padding: 4px 8px; font-size: 0.8rem; margin-bottom: 0;">
+                My Current GPS
+              </button>
+            </div>
+
+            <!-- Leaflet Interactive Map for Branch -->
+            <div id="admin-branch-map-view"
+              style="width: 100%; height: 180px; border-radius: 8px; margin-bottom: 10px; border: 1px solid #CCCCCC; background: #EEE;">
+            </div>
+            <div style="font-size: 0.72rem; color: var(--text-secondary); margin-bottom: 8px;">
+              Click on the map to pin this branch's office location.
+            </div>
+
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <div style="flex: 1;">
+                <label class="field-label" style="font-size: 0.78rem;">Target Latitude</label>
+                <input type="number" step="any" id="admin-branch-lat" class="outlined-field"
+                  placeholder="Target Latitude" style="margin-bottom: 0;" required>
+              </div>
+              <div style="flex: 1;">
+                <label class="field-label" style="font-size: 0.78rem;">Target Longitude</label>
+                <input type="number" step="any" id="admin-branch-lon" class="outlined-field"
+                  placeholder="Target Longitude" style="margin-bottom: 0;" required>
+              </div>
+            </div>
+
+            <div>
+              <label class="field-label" style="font-size: 0.78rem;">Allowed Radius (Meters)</label>
+              <input type="number" id="admin-branch-radius" class="outlined-field" value="100"
+                placeholder="Allowed Radius (Meters)" style="margin-bottom: 4px;" required>
+              <div style="font-size: 0.73rem; color: var(--text-secondary);">
+                Employees assigned to this branch must be within this radius to mark attendance.
+              </div>
+            </div>
+          </div>
+
+          <button type="submit" class="btn-m3" id="btn-save-branch">Save Branch</button>
+        </form>
+      </div>
+    </div>
+
+    <!-- ==========================================
+         CAMERA & GEOFENCE ATTENDANCE MODAL
+         ========================================== -->
+    <div class="modal-overlay" id="modal-attendance-camera">
+      <div class="modal-content">
+        <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
+          <h3 id="modal-action-title" style="font-size: 1.2rem;">Mark Attendance</h3>
+          <button type="button" class="btn-text" id="btn-close-camera-modal" style="padding: 4px;">✕</button>
+        </div>
+
+        <div id="geofence-alert" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 14px;">
+          Checking GPS location...
+        </div>
+
+        <div class="camera-preview-box">
+          <video id="live-camera-video" playsinline autoplay muted></video>
+          <canvas id="live-camera-canvas" style="display: none;"></canvas>
+          <img id="captured-photo-display" style="display: none;">
+        </div>
+
+        <div id="file-upload-fallback" style="margin-bottom: 14px; text-align: center; display: none;">
+          <input type="file" id="fallback-file-input" accept="image/*" capture="user" style="display: none;">
+          <button type="button" class="btn-m3 btn-m3-secondary"
+            onclick="document.getElementById('fallback-file-input').click()">Upload Selfie</button>
+        </div>
+
+        <div style="display: flex; gap: 10px;">
+          <button type="button" class="btn-m3 btn-m3-secondary" id="btn-camera-retake"
+            style="display: none; margin-bottom: 0; flex: 1;">Retake</button>
+          <button type="button" class="btn-m3" id="btn-camera-capture" style="margin-bottom: 0; flex: 1;">Take
+            Photo</button>
+          <button type="button" class="btn-m3" id="btn-attendance-submit"
+            style="display: none; margin-bottom: 0; flex: 1;">Confirm & Submit</button>
+        </div>
+      </div>
+    </div>
+
+  </div>
+
+  <script type="module" src="js/app.js?v=5.4"></script>
+</body>
+
+</html>

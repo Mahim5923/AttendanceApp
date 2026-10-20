@@ -41,6 +41,7 @@ fun AdminEmployeeDetailScreen(
         }
         Spacer(modifier = Modifier.height(16.dp))
         
+        Text("Branch: ${if (settings.branch.isNotBlank()) settings.branch else "None (Individual)"}")
         Text("Base Salary: ₹${settings.baseSalary}")
         Text("Shift: ${settings.checkInTimeHours}:${String.format("%02d", settings.checkInTimeMinutes)} - ${settings.checkOutTimeHours}:${String.format("%02d", settings.checkOutTimeMinutes)}")
         

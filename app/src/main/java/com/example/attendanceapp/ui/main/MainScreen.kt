@@ -11,7 +11,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Chat
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material3.pulltorefresh.PullToRefreshBox
 import androidx.compose.material3.pulltorefresh.rememberPullToRefreshState
 import androidx.compose.runtime.Composable
@@ -73,7 +73,7 @@ fun MainScreen(
                 containerColor = androidx.compose.ui.graphics.Color.Red,
                 contentColor = androidx.compose.ui.graphics.Color.White
             ) {
-                Icon(Icons.Default.Chat, contentDescription = "Chat")
+                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Chat")
             }
         },
         modifier = modifier.fillMaxSize()
