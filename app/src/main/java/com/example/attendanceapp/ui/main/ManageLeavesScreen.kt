@@ -137,7 +137,7 @@ fun LeaveRequestItem(
                     color = if (branchName != "No Branch") MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
                 ) {
                     Text(
-                        text = "🏢 $branchName",
+                        text = branchName,
                         style = MaterialTheme.typography.labelSmall,
                         color = if (branchName != "No Branch") MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)

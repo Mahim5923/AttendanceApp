@@ -262,7 +262,7 @@ fun AdminDashboardScreen(
                                             color = if (empSettings.branch.isNotBlank()) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant
                                         ) {
                                             Text(
-                                                text = "🏢 $branchName",
+                                                text = branchName,
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = if (empSettings.branch.isNotBlank()) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurfaceVariant,
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)

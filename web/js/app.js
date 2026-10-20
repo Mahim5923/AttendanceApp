@@ -56,30 +56,30 @@ let unsubMessages = null;
 
 // --- Language Dictionary (100% matches Android LanguageManager.kt) ---
 const dictionary = {
-  "Login": "लॉग इन करें",
-  "Email": "ईमेल",
-  "Password": "पासवर्ड",
-  "In": "अंदर",
-  "Out": "बाहर",
-  "View My Attendance": "मेरी उपस्थिति",
-  "Request Leave": "छुट्टी का अनुरोध",
-  "Salary Calculator": "वेतन कैलकुलेटर",
-  "Logout": "लॉग आउट",
-  "Edit Profile": "प्रोफ़ाइल संपादित करें",
-  "Smart Attendance & Workforce Management": "स्मार्ट उपस्थिति एवं कार्यबल प्रबंधन",
-  "My Attendance": "मेरी उपस्थिति",
-  "Reason for leave": "छुट्टी का कारण",
-  "Submit Request": "अनुरोध जमा करें",
-  "Salary Calculator Dashboard": "वेतन कैलकुलेटर",
-  "Export Monthly Report (.csv)": "मासिक रिपोर्ट निर्यात करें (.csv)",
-  "Chat with Admin": "एडमिन से चैट करें",
-  "Save Profile": "प्रोफ़ाइल सहेजें",
-  "Display Name": "दिखने वाला नाम",
-  "Admin Dashboard": "एडमिन डैशबोर्ड",
-  "Employees": "कर्मचारी",
-  "Leaves": "छुट्टियां",
-  "Approve": "मंजूर",
-  "Reject": "अस्वीकार"
+  "Login": "à¤²à¥‰à¤— à¤‡à¤¨ à¤•à¤°à¥‡à¤‚",
+  "Email": "à¤ˆà¤®à¥‡à¤²",
+  "Password": "à¤ªà¤¾à¤¸à¤µà¤°à¥à¤¡",
+  "In": "à¤…à¤‚à¤¦à¤°",
+  "Out": "à¤¬à¤¾à¤¹à¤°",
+  "View My Attendance": "à¤®à¥‡à¤°à¥€ à¤‰à¤ªà¤¸à¥à¤¥à¤¿à¤¤à¤¿",
+  "Request Leave": "à¤›à¥à¤Ÿà¥à¤Ÿà¥€ à¤•à¤¾ à¤…à¤¨à¥à¤°à¥‹à¤§",
+  "Salary Calculator": "à¤µà¥‡à¤¤à¤¨ à¤•à¥ˆà¤²à¤•à¥à¤²à¥‡à¤Ÿà¤°",
+  "Logout": "à¤²à¥‰à¤— à¤†à¤‰à¤Ÿ",
+  "Edit Profile": "à¤ªà¥à¤°à¥‹à¤«à¤¼à¤¾à¤‡à¤² à¤¸à¤‚à¤ªà¤¾à¤¦à¤¿à¤¤ à¤•à¤°à¥‡à¤‚",
+  "Smart Attendance & Workforce Management": "à¤¸à¥à¤®à¤¾à¤°à¥à¤Ÿ à¤‰à¤ªà¤¸à¥à¤¥à¤¿à¤¤à¤¿ à¤à¤µà¤‚ à¤•à¤¾à¤°à¥à¤¯à¤¬à¤² à¤ªà¥à¤°à¤¬à¤‚à¤§à¤¨",
+  "My Attendance": "à¤®à¥‡à¤°à¥€ à¤‰à¤ªà¤¸à¥à¤¥à¤¿à¤¤à¤¿",
+  "Reason for leave": "à¤›à¥à¤Ÿà¥à¤Ÿà¥€ à¤•à¤¾ à¤•à¤¾à¤°à¤£",
+  "Submit Request": "à¤…à¤¨à¥à¤°à¥‹à¤§ à¤œà¤®à¤¾ à¤•à¤°à¥‡à¤‚",
+  "Salary Calculator Dashboard": "à¤µà¥‡à¤¤à¤¨ à¤•à¥ˆà¤²à¤•à¥à¤²à¥‡à¤Ÿà¤°",
+  "Export Monthly Report (.csv)": "à¤®à¤¾à¤¸à¤¿à¤• à¤°à¤¿à¤ªà¥‹à¤°à¥à¤Ÿ à¤¨à¤¿à¤°à¥à¤¯à¤¾à¤¤ à¤•à¤°à¥‡à¤‚ (.csv)",
+  "Chat with Admin": "à¤à¤¡à¤®à¤¿à¤¨ à¤¸à¥‡ à¤šà¥ˆà¤Ÿ à¤•à¤°à¥‡à¤‚",
+  "Save Profile": "à¤ªà¥à¤°à¥‹à¤«à¤¼à¤¾à¤‡à¤² à¤¸à¤¹à¥‡à¤œà¥‡à¤‚",
+  "Display Name": "à¤¦à¤¿à¤–à¤¨à¥‡ à¤µà¤¾à¤²à¤¾ à¤¨à¤¾à¤®",
+  "Admin Dashboard": "à¤à¤¡à¤®à¤¿à¤¨ à¤¡à¥ˆà¤¶à¤¬à¥‹à¤°à¥à¤¡",
+  "Employees": "à¤•à¤°à¥à¤®à¤šà¤¾à¤°à¥€",
+  "Leaves": "à¤›à¥à¤Ÿà¥à¤Ÿà¤¿à¤¯à¤¾à¤‚",
+  "Approve": "à¤®à¤‚à¤œà¥‚à¤°",
+  "Reject": "à¤…à¤¸à¥à¤µà¥€à¤•à¤¾à¤°"
 };
 
 function t(text) {
@@ -135,9 +135,9 @@ function updateLiveClock() {
 
   const now = new Date();
   const dayNames = ["Sunday", "Monday", "Tuesday", "Wednesday", "Thursday", "Friday", "Saturday"];
-  const dayNamesHi = ["रविवार", "सोमवार", "मंगलवार", "बुधवार", "गुरुवार", "शुक्रवार", "शनिवार"];
+  const dayNamesHi = ["à¤°à¤µà¤¿à¤µà¤¾à¤°", "à¤¸à¥‹à¤®à¤µà¤¾à¤°", "à¤®à¤‚à¤—à¤²à¤µà¤¾à¤°", "à¤¬à¥à¤§à¤µà¤¾à¤°", "à¤—à¥à¤°à¥à¤µà¤¾à¤°", "à¤¶à¥à¤•à¥à¤°à¤µà¤¾à¤°", "à¤¶à¤¨à¤¿à¤µà¤¾à¤°"];
   const monthNames = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"];
-  const monthNamesHi = ["जनवरी", "फ़रवरी", "मार्च", "अप्रैल", "मई", "जून", "जुलाई", "अगस्त", "सितंबर", "अक्टूबर", "नवंबर", "दिसंबर"];
+  const monthNamesHi = ["à¤œà¤¨à¤µà¤°à¥€", "à¤«à¤¼à¤°à¤µà¤°à¥€", "à¤®à¤¾à¤°à¥à¤š", "à¤…à¤ªà¥à¤°à¥ˆà¤²", "à¤®à¤ˆ", "à¤œà¥‚à¤¨", "à¤œà¥à¤²à¤¾à¤ˆ", "à¤…à¤—à¤¸à¥à¤¤", "à¤¸à¤¿à¤¤à¤‚à¤¬à¤°", "à¤…à¤•à¥à¤Ÿà¥‚à¤¬à¤°", "à¤¨à¤µà¤‚à¤¬à¤°", "à¤¦à¤¿à¤¸à¤‚à¤¬à¤°"];
 
   const dayStr = isHindi ? dayNamesHi[now.getDay()] : dayNames[now.getDay()];
   const dateNum = String(now.getDate()).padStart(2, "0");
@@ -280,7 +280,7 @@ const btnLangToggle = document.getElementById("btn-lang-toggle");
 if (btnLangToggle) {
   btnLangToggle.addEventListener("click", () => {
     isHindi = !isHindi;
-    btnLangToggle.textContent = isHindi ? "English" : "हिंदी";
+    btnLangToggle.textContent = isHindi ? "English" : "à¤¹à¤¿à¤‚à¤¦à¥€";
     applyTranslations();
   });
 }
@@ -294,7 +294,7 @@ function applyTranslations() {
 
   const txtLoginBtn = document.getElementById("txt-login-btn");
   if (txtLoginBtn) {
-    txtLoginBtn.textContent = isHindi ? "लॉग इन करें" : "Login";
+    txtLoginBtn.textContent = isHindi ? "à¤²à¥‰à¤— à¤‡à¤¨ à¤•à¤°à¥‡à¤‚" : "Login";
   }
 
   const btnClockIn = document.getElementById("btn-clock-in");
@@ -327,7 +327,7 @@ function updateWelcomeText() {
   if (!welcomeEl || !currentUser) return;
   const settings = getMySettings();
   const name = settings.displayName || currentUser.email.split("@")[0];
-  welcomeEl.textContent = isHindi ? `स्वागत है, ${name}` : `Welcome, ${name}`;
+  welcomeEl.textContent = isHindi ? `à¤¸à¥à¤µà¤¾à¤—à¤¤ à¤¹à¥ˆ, ${name}` : `Welcome, ${name}`;
 }
 
 function hideAuthBanners() {
@@ -355,7 +355,7 @@ async function performLogin() {
   const txtBtn = document.getElementById("txt-login-btn");
 
   if (!rawInput || !pass) {
-    showAuthError(isHindi ? "कृपया ईमेल और पासवर्ड दोनों दर्ज करें।" : "Please enter both email and password.");
+    showAuthError(isHindi ? "à¤•à¥ƒà¤ªà¤¯à¤¾ à¤ˆà¤®à¥‡à¤² à¤”à¤° à¤ªà¤¾à¤¸à¤µà¤°à¥à¤¡ à¤¦à¥‹à¤¨à¥‹à¤‚ à¤¦à¤°à¥à¤œ à¤•à¤°à¥‡à¤‚à¥¤" : "Please enter both email and password.");
     return;
   }
 
@@ -366,13 +366,13 @@ async function performLogin() {
   }
 
   if (!targetEmail.includes("@")) {
-    showAuthError(isHindi ? "कृपया एक मान्य ईमेल दर्ज करें या 'admin' का उपयोग करें।" : "Please enter a valid email address (e.g. name@example.com) or 'admin'.");
+    showAuthError(isHindi ? "à¤•à¥ƒà¤ªà¤¯à¤¾ à¤à¤• à¤®à¤¾à¤¨à¥à¤¯ à¤ˆà¤®à¥‡à¤² à¤¦à¤°à¥à¤œ à¤•à¤°à¥‡à¤‚ à¤¯à¤¾ 'admin' à¤•à¤¾ à¤‰à¤ªà¤¯à¥‹à¤— à¤•à¤°à¥‡à¤‚à¥¤" : "Please enter a valid email address (e.g. name@example.com) or 'admin'.");
     return;
   }
 
   hideAuthBanners();
   if (btn) btn.disabled = true;
-  if (txtBtn) txtBtn.textContent = isHindi ? "सत्यापित हो रहा है..." : "Authenticating...";
+  if (txtBtn) txtBtn.textContent = isHindi ? "à¤¸à¤¤à¥à¤¯à¤¾à¤ªà¤¿à¤¤ à¤¹à¥‹ à¤°à¤¹à¤¾ à¤¹à¥ˆ..." : "Authenticating...";
 
   try {
     // 1. Attempt standard Firebase Auth sign-in
@@ -388,29 +388,29 @@ async function performLogin() {
       errMsg.includes("INVALID_LOGIN_CREDENTIALS");
 
     // Handle specific error codes - refuse access if account does not exist or credentials fail
-    let msg = errMsg || (isHindi ? "लॉगिन विफल रहा।" : "Login failed.");
+    let msg = errMsg || (isHindi ? "à¤²à¥‰à¤—à¤¿à¤¨ à¤µà¤¿à¤«à¤² à¤°à¤¹à¤¾à¥¤" : "Login failed.");
     if (errCode === "auth/user-not-found") {
       msg = isHindi 
-        ? "खाता मौजूद नहीं है। पहुंच अस्वीकृत। कृपया व्यवस्थापक से संपर्क करें।" 
+        ? "à¤–à¤¾à¤¤à¤¾ à¤®à¥Œà¤œà¥‚à¤¦ à¤¨à¤¹à¥€à¤‚ à¤¹à¥ˆà¥¤ à¤ªà¤¹à¥à¤‚à¤š à¤…à¤¸à¥à¤µà¥€à¤•à¥ƒà¤¤à¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤µà¥à¤¯à¤µà¤¸à¥à¤¥à¤¾à¤ªà¤• à¤¸à¥‡ à¤¸à¤‚à¤ªà¤°à¥à¤• à¤•à¤°à¥‡à¤‚à¥¤" 
         : "Account does not exist. Access denied. Please contact your administrator.";
     } else if (errCode === "auth/wrong-password") {
-      msg = isHindi ? "गलत पासवर्ड। कृपया पुनः प्रयास करें।" : "Incorrect password. Please try again.";
+      msg = isHindi ? "à¤—à¤²à¤¤ à¤ªà¤¾à¤¸à¤µà¤°à¥à¤¡à¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤ªà¥à¤¨à¤ƒ à¤ªà¥à¤°à¤¯à¤¾à¤¸ à¤•à¤°à¥‡à¤‚à¥¤" : "Incorrect password. Please try again.";
     } else if (isCredentialError) {
       if (targetEmail.toLowerCase() === "mahimsinhsingoria@gmail.com") {
-        msg = isHindi ? "एडमिन पासवर्ड गलत है। कृपया पुनः प्रयास करें।" : "Incorrect admin password. Please try again.";
+        msg = isHindi ? "à¤à¤¡à¤®à¤¿à¤¨ à¤ªà¤¾à¤¸à¤µà¤°à¥à¤¡ à¤—à¤²à¤¤ à¤¹à¥ˆà¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤ªà¥à¤¨à¤ƒ à¤ªà¥à¤°à¤¯à¤¾à¤¸ à¤•à¤°à¥‡à¤‚à¥¤" : "Incorrect admin password. Please try again.";
       } else {
         msg = isHindi 
-          ? "खाता मौजूद नहीं है या अमान्य विवरण। पहुंच अस्वीकृत। कृपया व्यवस्थापक से संपर्क करें।" 
+          ? "à¤–à¤¾à¤¤à¤¾ à¤®à¥Œà¤œà¥‚à¤¦ à¤¨à¤¹à¥€à¤‚ à¤¹à¥ˆ à¤¯à¤¾ à¤…à¤®à¤¾à¤¨à¥à¤¯ à¤µà¤¿à¤µà¤°à¤£à¥¤ à¤ªà¤¹à¥à¤‚à¤š à¤…à¤¸à¥à¤µà¥€à¤•à¥ƒà¤¤à¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤µà¥à¤¯à¤µà¤¸à¥à¤¥à¤¾à¤ªà¤• à¤¸à¥‡ à¤¸à¤‚à¤ªà¤°à¥à¤• à¤•à¤°à¥‡à¤‚à¥¤" 
           : "Account does not exist or invalid credentials. Access denied. Please contact your administrator.";
       }
     } else if (errCode === "auth/invalid-email") {
-      msg = isHindi ? "अमान्य ईमेल पता।" : "Invalid email format. Please check your email.";
+      msg = isHindi ? "à¤…à¤®à¤¾à¤¨à¥à¤¯ à¤ˆà¤®à¥‡à¤² à¤ªà¤¤à¤¾à¥¤" : "Invalid email format. Please check your email.";
     } else if (errCode === "auth/network-request-failed") {
-      msg = isHindi ? "नेटवर्क त्रुटि। कृपया इंटरनेट कनेक्शन जांचें।" : "Network error. Please check your internet connection.";
+      msg = isHindi ? "à¤¨à¥‡à¤Ÿà¤µà¤°à¥à¤• à¤¤à¥à¤°à¥à¤Ÿà¤¿à¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤‡à¤‚à¤Ÿà¤°à¤¨à¥‡à¤Ÿ à¤•à¤¨à¥‡à¤•à¥à¤¶à¤¨ à¤œà¤¾à¤‚à¤šà¥‡à¤‚à¥¤" : "Network error. Please check your internet connection.";
     } else if (errCode === "auth/too-many-requests") {
-      msg = isHindi ? "बहुत सारे असफल प्रयास। कृपया थोड़ी देर बाद पुनः प्रयास करें।" : "Access temporarily disabled due to many failed attempts. Try again later.";
+      msg = isHindi ? "à¤¬à¤¹à¥à¤¤ à¤¸à¤¾à¤°à¥‡ à¤…à¤¸à¤«à¤² à¤ªà¥à¤°à¤¯à¤¾à¤¸à¥¤ à¤•à¥ƒà¤ªà¤¯à¤¾ à¤¥à¥‹à¤¡à¤¼à¥€ à¤¦à¥‡à¤° à¤¬à¤¾à¤¦ à¤ªà¥à¤¨à¤ƒ à¤ªà¥à¤°à¤¯à¤¾à¤¸ à¤•à¤°à¥‡à¤‚à¥¤" : "Access temporarily disabled due to many failed attempts. Try again later.";
     } else if (errCode === "auth/user-disabled") {
-      msg = isHindi ? "यह खाता अक्षम कर दिया गया है।" : "This account has been disabled.";
+      msg = isHindi ? "à¤¯à¤¹ à¤–à¤¾à¤¤à¤¾ à¤…à¤•à¥à¤·à¤® à¤•à¤° à¤¦à¤¿à¤¯à¤¾ à¤—à¤¯à¤¾ à¤¹à¥ˆà¥¤" : "This account has been disabled.";
     }
 
     showAuthError(msg);
@@ -979,7 +979,7 @@ function renderAttendanceCalendar() {
     const timeFormatted = d.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     const isClockIn = a.type === "IN";
     const badgeColor = isClockIn ? "#2E7D32" : "#E53935";
-    const photo = a.photoUri ? `<img src="${a.photoUri}" class="history-thumb" alt="Selfie">` : `<div class="history-thumb" style="display:flex;align-items:center;justify-content:center;font-size:1.4rem;">📷</div>`;
+    const photo = a.photoUri ? `<img src="${a.photoUri}" class="history-thumb" alt="Selfie">` : `<div class="history-thumb" style="display:flex;align-items:center;justify-content:center;font-size:0.75rem;font-weight:600;color:var(--text-secondary);">No Pic</div>`;
 
     return `
       <div class="history-card">
@@ -1452,7 +1452,7 @@ if (btnBackFromAdminDetail) {
   });
 }
 
-// Month Navigation for Monthly Report (◀ Month Year ▶)
+// Month Navigation for Monthly Report
 const btnReportPrevMonth = document.getElementById("btn-report-prev-month");
 if (btnReportPrevMonth) {
   btnReportPrevMonth.addEventListener("click", () => {
@@ -1585,7 +1585,7 @@ function renderAdminDashboard() {
       const isAct = adminSelectedBranchFilter.toLowerCase() === (b.name || "").toLowerCase();
       filterHtml += `
         <button type="button" class="btn-text branch-filter-pill ${isAct ? 'active-filter' : ''}" data-branch="${b.name}">
-          🏢 ${b.name} (${count})
+          ${b.name} (${count})
         </button>
       `;
     });
@@ -1652,10 +1652,10 @@ function renderAdminDashboard() {
           <div style="font-weight: 600; font-size: 1rem; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${displayName}</div>
           ${s.displayName && s.displayName.trim().length > 0 ? `<div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${empId}</div>` : ''}
           <div style="margin-top: 4px;">
-            <span class="branch-badge ${s.branch ? '' : 'unassigned'}">🏢 ${branchName}</span>
+            <span class="branch-badge ${s.branch ? \'\' : \'unassigned\'}">${branchName}</span>
           </div>
         </div>
-        <div style="color: var(--text-secondary); font-size: 1.2rem; padding-left: 8px;">›</div>
+        <div style="color: var(--text-secondary); font-size: 1.2rem; padding-left: 8px;">&rsaquo;</div>
       </div>
     `;
   }).join("");
@@ -1719,7 +1719,7 @@ function openAdminEmployeeDetail(employeeId) {
       const bInM = String(b.checkInTimeMinutes ?? 0).padStart(2, "0");
       const bOutH = String(b.checkOutTimeHours ?? 17).padStart(2, "0");
       const bOutM = String(b.checkOutTimeMinutes ?? 0).padStart(2, "0");
-      branchOptions += `<option value="${b.name}" ${isSel ? 'selected' : ''}>🏢 ${b.name} (${bInH}:${bInM} - ${bOutH}:${bOutM})</option>`;
+      branchOptions += `<option value="${b.name}" ${isSel ? \'selected\' : \'\'}>${b.name} (${bInH}:${bInM} - ${bOutH}:${bOutM})</option>`;
     });
     branchSelect.innerHTML = branchOptions;
 
@@ -1734,7 +1734,7 @@ function openAdminEmployeeDetail(employeeId) {
         const foundBranch = branchesList.find(b => b.name.toLowerCase() === selectedName.toLowerCase());
         if (foundBranch) {
           if (branchHint) {
-            branchHint.textContent = `ℹ️ Shift times (${String(foundBranch.checkInTimeHours).padStart(2,'0')}:${String(foundBranch.checkInTimeMinutes).padStart(2,'0')} - ${String(foundBranch.checkOutTimeHours).padStart(2,'0')}:${String(foundBranch.checkOutTimeMinutes).padStart(2,'0')}) and office location will be synced from ${foundBranch.name}. Week offs and salary remain individual.`;
+            branchHint.textContent = `â„¹ï¸ Shift times (${String(foundBranch.checkInTimeHours).padStart(2,'0')}:${String(foundBranch.checkInTimeMinutes).padStart(2,'0')} - ${String(foundBranch.checkOutTimeHours).padStart(2,'0')}:${String(foundBranch.checkOutTimeMinutes).padStart(2,'0')}) and office location will be synced from ${foundBranch.name}. Week offs and salary remain individual.`;
             branchHint.style.display = "block";
           }
           document.getElementById("admin-detail-in-hour").value = foundBranch.checkInTimeHours ?? 9;
@@ -1941,14 +1941,14 @@ function renderAdminEmployeeDateRecords() {
     let distanceText = "";
     if (att.latitude && att.longitude && targetLat !== 0 && targetLon !== 0) {
       const dist = Math.round(calculateDistanceMeters(att.latitude, att.longitude, targetLat, targetLon));
-      distanceText = ` • ${dist}m from office`;
+      distanceText = ` - ${dist}m from office`;
     }
 
     return `
       <div style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 12px; padding: 14px; display: flex; align-items: center; gap: 14px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
         ${hasPhoto ?
           `<img src="${att.photoUri}" style="width: 52px; height: 52px; border-radius: 10px; object-fit: cover; flex-shrink: 0;" alt="Selfie">` :
-          `<div style="width: 52px; height: 52px; border-radius: 10px; background: #EEEEEE; display: flex; align-items: center; justify-content: center; font-size: 1.4rem; flex-shrink: 0;">📷</div>`
+          `<div style="width: 52px; height: 52px; border-radius: 10px; background: #EEEEEE; display: flex; align-items: center; justify-content: center; font-size: 0.72rem; font-weight: 600; color: var(--text-secondary); flex-shrink: 0;">No Pic</div>`
         }
         <div style="flex: 1; min-width: 0;">
           <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 4px;">
@@ -2137,7 +2137,7 @@ async function executeAdminMapSearch() {
   } finally {
     if (btnAdminMapSearch) {
       btnAdminMapSearch.disabled = false;
-      btnAdminMapSearch.textContent = "🔍 Search";
+      btnAdminMapSearch.textContent = "Search";
     }
   }
 }
@@ -2187,12 +2187,12 @@ if (btnAdminDetailFillGps) {
       btnAdminDetailFillGps.textContent = "Acquiring GPS...";
       navigator.geolocation.getCurrentPosition(
         (pos) => {
-          btnAdminDetailFillGps.textContent = "🎯 My Current GPS";
+          btnAdminDetailFillGps.textContent = "My Current GPS";
           setAdminMapPosition(pos.coords.latitude, pos.coords.longitude, true);
           if (adminMap) adminMap.setView([pos.coords.latitude, pos.coords.longitude], 17);
         },
         (err) => {
-          btnAdminDetailFillGps.textContent = "🎯 My Current GPS";
+          btnAdminDetailFillGps.textContent = "My Current GPS";
           alert("Could not fetch GPS: " + err.message);
         },
         { enableHighAccuracy: true, timeout: 10000 }
@@ -2287,7 +2287,7 @@ function renderAdminLeavesList() {
       const isAct = adminSelectedLeavesBranchFilter.toLowerCase() === (b.name || "").toLowerCase();
       filterHtml += `
         <button type="button" class="btn-text branch-filter-pill ${isAct ? 'active-filter' : ''}" data-branch="${b.name}">
-          🏢 ${b.name} (${count})
+          ${b.name} (${count})
         </button>
       `;
     });
@@ -2342,7 +2342,7 @@ function renderAdminLeavesList() {
       <div style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
           <div style="font-size: 1rem; font-weight: 600; color: var(--primary);">Employee: ${empName}</div>
-          <span class="branch-badge ${s.branch ? '' : 'unassigned'}">🏢 ${branchName}</span>
+          <span class="branch-badge ${s.branch ? \'\' : \'unassigned\'}">${branchName}</span>
         </div>
         <div style="font-size: 0.95rem; margin-bottom: 4px; color: var(--text-primary);">Date: ${dateStr}</div>
         <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">Reason: ${req.reason || "N/A"}</div>
@@ -2423,7 +2423,7 @@ function renderMonthlyReportScreen() {
       const isAct = adminSelectedReportBranchFilter.toLowerCase() === (b.name || "").toLowerCase();
       filterHtml += `
         <button type="button" class="btn-text branch-filter-pill ${isAct ? 'active-filter' : ''}" data-branch="${b.name}">
-          🏢 ${b.name} (${count})
+          ${b.name} (${count})
         </button>
       `;
     });
@@ -2481,7 +2481,7 @@ function renderMonthlyReportScreen() {
             <div style="font-size: 1.05rem; font-weight: 600; color: var(--text-primary);">${name}</div>
             <div style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px;">${empId}</div>
           </div>
-          <span class="branch-badge ${s.branch ? '' : 'unassigned'}">🏢 ${branchName}</span>
+          <span class="branch-badge ${s.branch ? \'\' : \'unassigned\'}">${branchName}</span>
         </div>
 
         <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.9rem;">
@@ -2577,10 +2577,10 @@ function renderAdminBranchesList() {
   if (branchesList.length === 0) {
     listEl.innerHTML = `
       <div style="text-align: center; color: var(--text-secondary); padding: 36px 16px; background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 14px;">
-        <div style="font-size: 2.2rem; margin-bottom: 8px;">🏢</div>
+        
         <div style="font-weight: 700; font-size: 1.1rem; color: var(--text-primary); margin-bottom: 4px;">No Branches Created Yet</div>
         <div style="font-size: 0.85rem; max-width: 320px; margin: 0 auto 16px;">Create branches to group employees with shared shift timings and office geofence locations.</div>
-        <button type="button" class="btn-m3" onclick="window.triggerCreateBranch && window.triggerCreateBranch()" style="max-width: 220px; margin: 0 auto; background: var(--primary);">➕ Create First Branch</button>
+        <button type="button" class="btn-m3" onclick="window.triggerCreateBranch && window.triggerCreateBranch()" style="max-width: 220px; margin: 0 auto; background: var(--primary);"> Create First Branch</button>
       </div>
     `;
     return;
@@ -2603,10 +2603,10 @@ function renderAdminBranchesList() {
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 10px;">
           <div>
             <div style="font-size: 1.15rem; font-weight: 700; color: var(--text-primary); display: flex; align-items: center; gap: 6px;">
-              🏢 ${b.name}
+              ${b.name}
             </div>
             <div style="font-size: 0.82rem; color: var(--primary); font-weight: 600; margin-top: 3px;">
-              👥 ${assignedCount} ${assignedCount === 1 ? 'employee' : 'employees'} assigned
+              ${assignedCount} ${assignedCount === 1 ? 'employee' : 'employees'} assigned
             </div>
           </div>
           <div style="display: flex; gap: 6px;">
@@ -2617,17 +2617,17 @@ function renderAdminBranchesList() {
 
         <div style="background: #F8F9FA; border-radius: 10px; padding: 12px; margin-bottom: 8px; font-size: 0.88rem; display: flex; flex-direction: column; gap: 6px;">
           <div style="display: flex; justify-content: space-between;">
-            <span style="color: var(--text-secondary);">⏰ Shift Timing:</span>
+            <span style="color: var(--text-secondary);">Shift Timing:</span>
             <span style="font-weight: 600;">${inH}:${inM} - ${outH}:${outM}</span>
           </div>
           <div style="display: flex; justify-content: space-between;">
-            <span style="color: var(--text-secondary);">📍 Office Location:</span>
+            <span style="color: var(--text-secondary);">Office Location:</span>
             <span style="font-weight: 600; text-align: right; word-break: break-all;">${locationDesc}</span>
           </div>
         </div>
 
         <div style="font-size: 0.74rem; color: var(--text-secondary);">
-          ℹ️ Employees under this branch inherit this shift time & location. Week offs remain individual per employee.
+          â„¹ï¸ Employees under this branch inherit this shift time & location. Week offs remain individual per employee.
         </div>
       </div>
     `;
@@ -2894,3 +2894,76 @@ if ('serviceWorker' in navigator) {
   });
 }
 
+
+
+// --- Branch Office Map Search Feature ---
+const btnAdminBranchMapSearch = document.getElementById("btn-admin-branch-map-search");
+const inputAdminBranchMapSearch = document.getElementById("admin-branch-map-search-input");
+
+async function executeAdminBranchMapSearch() {
+  const query = inputAdminBranchMapSearch ? inputAdminBranchMapSearch.value.trim() : "";
+  if (!query) {
+    alert("Please enter an address, landmark or city to search.");
+    return;
+  }
+
+  if (btnAdminBranchMapSearch) {
+    btnAdminBranchMapSearch.disabled = true;
+    btnAdminBranchMapSearch.textContent = "Searching...";
+  }
+
+  try {
+    const res = await fetch(`https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`);
+    const data = await res.json();
+    if (data && data.length > 0) {
+      const lat = parseFloat(data[0].lat);
+      const lon = parseFloat(data[0].lon);
+      const latInput = document.getElementById("admin-branch-lat");
+      const lonInput = document.getElementById("admin-branch-lon");
+      if (latInput) latInput.value = lat.toFixed(6);
+      if (lonInput) lonInput.value = lon.toFixed(6);
+      if (branchMap) {
+        branchMap.setView([lat, lon], 16);
+        if (branchMapMarker) branchMapMarker.setLatLng([lat, lon]);
+        if (branchMapCircle) branchMapCircle.setLatLng([lat, lon]);
+      }
+    } else {
+      alert("Location not found. Please try searching with city or postal code.");
+    }
+  } catch (err) {
+    console.error("Branch map search error:", err);
+    alert("Could not perform search. Please check your internet connection.");
+  } finally {
+    if (btnAdminBranchMapSearch) {
+      btnAdminBranchMapSearch.disabled = false;
+      btnAdminBranchMapSearch.textContent = "Search";
+    }
+  }
+}
+
+if (btnAdminBranchMapSearch) {
+  btnAdminBranchMapSearch.addEventListener("click", executeAdminBranchMapSearch);
+}
+if (inputAdminBranchMapSearch) {
+  inputAdminBranchMapSearch.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") {
+      e.preventDefault();
+      executeAdminBranchMapSearch();
+    }
+  });
+}
+
+// Live manual coordinate changes update Branch Map Pin
+const inputAdminBranchLat = document.getElementById("admin-branch-lat");
+const inputAdminBranchLon = document.getElementById("admin-branch-lon");
+function onBranchManualCoordChange() {
+  const lat = parseFloat(inputAdminBranchLat?.value);
+  const lon = parseFloat(inputAdminBranchLon?.value);
+  if (!isNaN(lat) && !isNaN(lon) && (lat !== 0 || lon !== 0)) {
+    if (branchMapMarker) branchMapMarker.setLatLng([lat, lon]);
+    if (branchMapCircle) branchMapCircle.setLatLng([lat, lon]);
+    if (branchMap) branchMap.panTo([lat, lon]);
+  }
+}
+if (inputAdminBranchLat) inputAdminBranchLat.addEventListener("input", onBranchManualCoordChange);
+if (inputAdminBranchLon) inputAdminBranchLon.addEventListener("input", onBranchManualCoordChange);

@@ -58,9 +58,7 @@
         </form>
 
         <div style="margin-top: 20px;">
-          <button type="button" class="btn-text" id="btn-lang-toggle" style="font-size: 1.1rem; font-weight: 500;">
-            हिंदी
-          </button>
+          <button type="button" class="btn-text" id="btn-lang-toggle" style="font-size: 1.1rem; font-weight: 500;">हिंदी</button>
         </div>
 
       </div>
@@ -106,7 +104,11 @@
       </div>
 
       <!-- Floating Action Button for Chat (Bottom-Right) -->
-      <button class="fab-chat" id="fab-chat-btn" title="Chat">💬</button>
+      <button class="fab-chat" id="fab-chat-btn" title="Chat" aria-label="Chat">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
+        </svg>
+      </button>
     </div>
 
     <!-- ==========================================
@@ -121,9 +123,9 @@
       <!-- Month Navigation Bar -->
       <div
         style="display: flex; justify-content: space-between; align-items: center; padding: 8px 12px; background: #F8F9FA; border-radius: 12px; margin-bottom: 12px;">
-        <button class="btn-text" id="btn-cal-prev" style="padding: 4px 8px;">◀</button>
+        <button class="btn-text" id="btn-cal-prev" style="padding: 4px 8px;">&#9664;</button>
         <div id="cal-month-title" style="font-weight: 700; font-size: 1rem;">Month Year</div>
-        <button class="btn-text" id="btn-cal-next" style="padding: 4px 8px;">▶</button>
+        <button class="btn-text" id="btn-cal-next" style="padding: 4px 8px;">&#9654;</button>
       </div>
 
       <!-- Calendar Grid -->
@@ -134,10 +136,10 @@
       <!-- Legend -->
       <div
         style="display: flex; justify-content: space-around; font-size: 0.75rem; color: var(--text-secondary); margin-bottom: 16px;">
-        <div><span style="color: #2E7D32;">●</span> Present</div>
-        <div><span style="color: #E53935;">●</span> Absent</div>
-        <div><span style="color: #FB8C00;">●</span> Leave</div>
-        <div><span style="color: #9E9E9E;">●</span> Week Off</div>
+        <div><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #2E7D32; margin-right: 4px;"></span> Present</div>
+        <div><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #E53935; margin-right: 4px;"></span> Absent</div>
+        <div><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #FB8C00; margin-right: 4px;"></span> Leave</div>
+        <div><span style="display: inline-block; width: 8px; height: 8px; border-radius: 50%; background: #9E9E9E; margin-right: 4px;"></span> Week Off</div>
       </div>
 
       <h3 style="font-size: 1rem; margin-bottom: 8px;" id="history-selected-date-title">Selected Date Records</h3>
@@ -294,7 +296,11 @@
       <div id="admin-staff-list" style="overflow-y: auto; flex: 1;"></div>
 
       <!-- Floating Action Button for Chat (Bottom-Right) -->
-      <button class="fab-chat" id="fab-admin-chat-btn" title="Chat">💬</button>
+      <button class="fab-chat" id="fab-admin-chat-btn" title="Chat" aria-label="Chat">
+        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
+          <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
+        </svg>
+      </button>
     </div>
 
     <!-- ==========================================
@@ -326,9 +332,9 @@
       <!-- Month Switcher with < and > (Matches Android) -->
       <div
         style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #F8F9FA; border-radius: 12px; margin-bottom: 12px;">
-        <button class="btn-text" id="btn-report-prev-month" style="font-size: 1.2rem; padding: 4px 10px;">◀</button>
+        <button class="btn-text" id="btn-report-prev-month" style="font-size: 1.2rem; padding: 4px 10px;">&#9664;</button>
         <div id="disp-report-month-year" style="font-size: 1.05rem; font-weight: 700;">Month Year</div>
-        <button class="btn-text" id="btn-report-next-month" style="font-size: 1.2rem; padding: 4px 10px;">▶</button>
+        <button class="btn-text" id="btn-report-next-month" style="font-size: 1.2rem; padding: 4px 10px;">&#9654;</button>
       </div>
 
       <!-- Branch Filter Bar for Monthly Report -->
@@ -353,9 +359,7 @@
       <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 14px;">
         <h1 style="font-size: 1.25rem; font-weight: 700;" id="admin-detail-title">Details: Employee</h1>
         <div style="display: flex; gap: 8px;">
-          <button type="button" class="btn-text" id="btn-toggle-admin-emp-settings"
-            style="font-size: 0.9rem; padding: 6px 12px; border: 1.5px solid var(--primary); border-radius: 8px; font-weight: 600;">⚙️
-            Settings</button>
+          <button type="button" class="btn-text" id="btn-toggle-admin-emp-settings" style="font-size: 0.9rem; padding: 6px 12px; border: 1.5px solid var(--primary); border-radius: 8px; font-weight: 600;">Settings</button>
           <button type="button" class="btn-text" id="btn-back-from-admin-detail">Back</button>
         </div>
       </div>
@@ -390,10 +394,10 @@
         <div
           style="display: flex; justify-content: space-between; align-items: center; padding: 10px 16px; background: #F8F9FA; border-radius: 12px; margin-bottom: 12px;">
           <button class="btn-text" id="btn-admin-emp-prev-month"
-            style="font-size: 1.2rem; padding: 4px 10px;">◀</button>
+            style="font-size: 1.2rem; padding: 4px 10px;">&#9664;</button>
           <div id="disp-admin-emp-month-year" style="font-size: 1.05rem; font-weight: 700;">Month Year</div>
           <button class="btn-text" id="btn-admin-emp-next-month"
-            style="font-size: 1.2rem; padding: 4px 10px;">▶</button>
+            style="font-size: 1.2rem; padding: 4px 10px;">&#9654;</button>
         </div>
 
         <!-- Calendar Days Grid (7 columns) -->
@@ -430,7 +434,7 @@
       <div class="modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
           <h2 style="font-size: 1.2rem; font-weight: 700;" id="modal-settings-title">Edit Settings</h2>
-          <button type="button" class="btn-text" id="btn-close-emp-settings-modal" style="font-size: 1.3rem;">✕</button>
+          <button type="button" class="btn-text" id="btn-close-emp-settings-modal" style="font-size: 1.3rem;">&times;</button>
         </div>
 
         <form id="form-admin-employee-detail">
@@ -447,11 +451,7 @@
               style="width: 100%; height: 48px; font-size: 0.95rem;">
               <option value="">-- No Branch (Individual Settings) --</option>
             </select>
-            <div id="admin-detail-branch-hint"
-              style="font-size: 0.78rem; color: #C62828; background: #FFEBEE; border: 1px solid #FFCDD2; padding: 8px 10px; border-radius: 8px; margin-top: 6px; display: none;">
-              ℹ️ Shift times and office location are synced from this branch. Week offs and base salary remain
-              individual per employee.
-            </div>
+            <div id="admin-detail-branch-hint" style="font-size: 0.78rem; color: #C62828; background: #FFEBEE; border: 1px solid #FFCDD2; padding: 8px 10px; border-radius: 8px; margin-top: 6px; display: none;">Shift times and office location are synced from this branch. Week offs and base salary remain individual per employee.</div>
           </div>
 
           <div class="form-group">
@@ -598,7 +598,7 @@
       <div class="modal-content" style="max-height: 90vh; overflow-y: auto;">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
           <h2 style="font-size: 1.2rem; font-weight: 700;" id="modal-branch-title">Create Branch</h2>
-          <button type="button" class="btn-text" id="btn-close-branch-modal" style="font-size: 1.3rem;">✕</button>
+          <button type="button" class="btn-text" id="btn-close-branch-modal" style="font-size: 1.3rem;">&times;</button>
         </div>
 
         <form id="form-admin-branch">
@@ -644,11 +644,20 @@
           <div class="form-group"
             style="background: #F8F9FA; padding: 12px; border-radius: 10px; border: 1px solid #E0E0E0; margin-bottom: 16px;">
             <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px;">
-              <label class="field-label" style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0;">📍 Branch
-                Office Location</label>
+              <label class="field-label" style="font-weight: 600; font-size: 0.95rem; margin-bottom: 0;">Branch Office Location</label>
               <button type="button" class="btn-text" id="btn-admin-branch-fill-gps"
                 style="border: 1px dashed var(--primary); border-radius: 8px; padding: 4px 8px; font-size: 0.8rem; margin-bottom: 0;">
                 My Current GPS
+              </button>
+            </div>
+
+                        <!-- Search Address / Places for Branch Map -->
+            <div style="display: flex; gap: 8px; margin-bottom: 8px;">
+              <input type="text" id="admin-branch-map-search-input" class="outlined-field"
+                placeholder="Search address, landmark or city..." style="margin-bottom: 0; flex: 1;">
+              <button type="button" class="btn-m3" id="btn-admin-branch-map-search"
+                style="margin-bottom: 0; padding: 0 16px; white-space: nowrap; height: 46px; font-size: 0.88rem;">
+                Search
               </button>
             </div>
 
@@ -695,7 +704,7 @@
       <div class="modal-content">
         <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 16px;">
           <h3 id="modal-action-title" style="font-size: 1.2rem;">Mark Attendance</h3>
-          <button type="button" class="btn-text" id="btn-close-camera-modal" style="padding: 4px;">✕</button>
+          <button type="button" class="btn-text" id="btn-close-camera-modal" style="padding: 4px; font-size: 1.3rem;">&times;</button>
         </div>
 
         <div id="geofence-alert" style="font-size: 0.85rem; color: var(--text-secondary); margin-bottom: 14px;">

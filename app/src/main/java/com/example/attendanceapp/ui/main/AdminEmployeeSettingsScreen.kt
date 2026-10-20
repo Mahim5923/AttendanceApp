@@ -117,7 +117,7 @@ fun AdminEmployeeSettingsScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Text(
-                    text = "🏢 Assigned to '$selectedBranch'. Shift times and attendance location are synchronized with the branch. Week offs and salary remain individual.",
+                    text = "Assigned to '$selectedBranch'. Shift times and attendance location are synchronized with the branch. Week offs and salary remain individual.",
                     style = MaterialTheme.typography.bodySmall,
                     modifier = Modifier.padding(10.dp)
                 )

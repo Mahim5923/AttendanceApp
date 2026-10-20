@@ -158,7 +158,7 @@ fun ManageBranchesScreen(
                                             modifier = Modifier.padding(top = 4.dp)
                                         ) {
                                             Text(
-                                                text = "👥 $assignedCount Assigned",
+                                                text = "$assignedCount Assigned",
                                                 style = MaterialTheme.typography.labelSmall,
                                                 color = MaterialTheme.colorScheme.onPrimaryContainer,
                                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -196,7 +196,7 @@ fun ManageBranchesScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "🕒 Shift Schedule:",
+                                        text = "Shift Schedule:",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -220,7 +220,7 @@ fun ManageBranchesScreen(
                                     horizontalArrangement = Arrangement.SpaceBetween
                                 ) {
                                     Text(
-                                        text = "📍 Office Geofence:",
+                                        text = "Office Geofence:",
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -325,7 +325,7 @@ fun BranchEditDialog(
                     .verticalScroll(rememberScrollState(), enabled = !isMapTouched)
             ) {
                 Text(
-                    text = if (isNew) "➕ Add New Branch" else "✏️ Edit Branch",
+                    text = if (isNew) "Add New Branch" else "Edit Branch",
                     style = MaterialTheme.typography.headlineSmall,
                     fontWeight = FontWeight.Bold,
                     color = MaterialTheme.colorScheme.primary
