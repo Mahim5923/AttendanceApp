@@ -1211,14 +1211,7 @@ if (btnExportCsv) {
   });
 }
 
-const btnAdminExportCsv = document.getElementById("btn-admin-export-csv");
-if (btnAdminExportCsv) {
-  btnAdminExportCsv.addEventListener("click", () => {
-    exportMonthlyCsv();
-  });
-}
-
-function exportMonthlyCsv() {
+function exportMonthlyCsv(targetYear, targetMonth) {
   const employees = Array.from(new Set([
     ...employeeSettingsList.map(s => s.employeeId.toLowerCase()),
     ...attendances.map(a => a.employeeId.toLowerCase())
@@ -1587,6 +1580,8 @@ function calculateSalaryForEmployee(empId, year, month) {
 // 3. Render Admin Dashboard Screen (Matches Android AdminDashboardScreen.kt)
 function renderAdminDashboard() {
   if (!isAdmin) return;
+
+  checkAndRenderEndOfMonthAlert();
 
   const staffListEl = document.getElementById("admin-staff-list");
   if (!staffListEl) return;
@@ -2431,6 +2426,10 @@ function renderMonthlyReportScreen() {
   if (monthYearLabel) {
     monthYearLabel.textContent = `${monthNames[reportSelectedMonth]} ${reportSelectedYear}`;
   }
+  const exportBtnLabel = document.getElementById("txt-export-excel-btn");
+  if (exportBtnLabel) {
+    exportBtnLabel.textContent = `Download ${monthNames[reportSelectedMonth]} Excel (.xlsx)`;
+  }
 
   const allEmps = Array.from(new Set([
     ...employeeSettingsList.map(s => s.employeeId.toLowerCase()),
@@ -2559,42 +2558,483 @@ function renderMonthlyReportScreen() {
   }).join("");
 }
 
-// Export CSV for the selected month/year in Monthly Report
+// ==========================================
+// Native Multi-Sheet Excel (.xlsx) Report Generator
+// ==========================================
+function generateMonthlyExcelReport(targetYear, targetMonth) {
+  if (typeof XLSX === "undefined") {
+    alert("Excel generator library is loading, please try again in a moment.");
+    return;
+  }
+
+  const y = (typeof targetYear === "number") ? targetYear : reportSelectedYear;
+  const m = (typeof targetMonth === "number") ? targetMonth : reportSelectedMonth;
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+  const monthName = monthNames[m] || `Month_${m + 1}`;
+  const daysInMonth = new Date(y, m + 1, 0).getDate();
+
+  const allEmps = Array.from(new Set([
+    ...employeeSettingsList.map(s => s.employeeId.toLowerCase()),
+    ...attendances.map(a => a.employeeId.toLowerCase())
+  ])).filter(e => e !== "admin");
+
+  if (allEmps.length === 0) {
+    alert("No employee records found to generate monthly report.");
+    return;
+  }
+
+  // Sort employees by Branch (alphabetical, unassigned at bottom), then Display Name
+  allEmps.sort((a, b) => {
+    const brA = (getMySettings(a).branch || "ZZZ_NoBranch").toLowerCase();
+    const brB = (getMySettings(b).branch || "ZZZ_NoBranch").toLowerCase();
+    if (brA !== brB) return brA.localeCompare(brB);
+    const nameA = (getMySettings(a).displayName || a).toLowerCase();
+    const nameB = (getMySettings(b).displayName || b).toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
+
+  // ----------------------------------------------------
+  // SHEET 1: Monthly Summary & Payroll
+  // ----------------------------------------------------
+  const summaryAOA = [];
+  summaryAOA.push(["ATTENDPRO - MONTHLY ATTENDANCE & PAYROLL REPORT"]);
+  summaryAOA.push([`Month & Year: ${monthName} ${y}`, "", "", `Generated: ${new Date().toLocaleString()}`]);
+  summaryAOA.push([]); // blank line
+
+  summaryAOA.push([
+    "S.No",
+    "Branch",
+    "Employee ID",
+    "Employee Name",
+    "Base Salary (₹)",
+    "Total Working Days",
+    "Days Present",
+    "Approved Leaves",
+    "Days Absent",
+    "Per Day Salary (₹)",
+    "Deductions (₹)",
+    "Net Payable Salary (₹)"
+  ]);
+
+  let totalBaseSalary = 0;
+  let totalPresentDays = 0;
+  let totalLeaves = 0;
+  let totalAbsent = 0;
+  let totalDeductions = 0;
+  let totalNetSalary = 0;
+
+  allEmps.forEach((empId, idx) => {
+    const s = getMySettings(empId);
+    const name = (s.displayName && s.displayName.trim().length > 0) ? s.displayName.trim() : empId;
+    const branchName = s.branch || "Unassigned";
+    const calc = calculateSalaryForEmployee(empId, y, m);
+
+    totalBaseSalary += calc.baseSalary;
+    totalPresentDays += calc.presentDays;
+    totalLeaves += calc.approvedLeaveDays;
+    totalAbsent += calc.absentDays;
+    totalDeductions += calc.deduction;
+    totalNetSalary += calc.netSalary;
+
+    summaryAOA.push([
+      idx + 1,
+      branchName,
+      empId,
+      name,
+      Number(calc.baseSalary),
+      calc.totalWorkingDays,
+      calc.presentDays,
+      calc.approvedLeaveDays,
+      calc.absentDays,
+      Number(calc.perDaySalary.toFixed(2)),
+      Number(calc.deduction.toFixed(2)),
+      Number(calc.netSalary.toFixed(2))
+    ]);
+  });
+
+  // Totals row at the bottom of Summary
+  summaryAOA.push([
+    "TOTAL",
+    "-",
+    `${allEmps.length} Employees`,
+    "-",
+    Number(totalBaseSalary),
+    "-",
+    totalPresentDays,
+    totalLeaves,
+    totalAbsent,
+    "-",
+    Number(totalDeductions.toFixed(2)),
+    Number(totalNetSalary.toFixed(2))
+  ]);
+
+  const wsSummary = XLSX.utils.aoa_to_sheet(summaryAOA);
+  wsSummary["!cols"] = [
+    { wch: 6 },  // S.No
+    { wch: 18 }, // Branch
+    { wch: 28 }, // Employee ID
+    { wch: 22 }, // Employee Name
+    { wch: 16 }, // Base Salary
+    { wch: 18 }, // Working Days
+    { wch: 14 }, // Present
+    { wch: 16 }, // Leaves
+    { wch: 14 }, // Absent
+    { wch: 18 }, // Per Day Salary
+    { wch: 16 }, // Deductions
+    { wch: 22 }  // Net Payable Salary
+  ];
+
+  // ----------------------------------------------------
+  // SHEET 2: Daily Attendance Matrix (Day 1 to Day 31)
+  // ----------------------------------------------------
+  const matrixAOA = [];
+  matrixAOA.push([`DAILY ATTENDANCE BREAKDOWN - ${monthName.toUpperCase()} ${y}`]);
+  matrixAOA.push(["Legend: P = Present (Both IN & OUT) | IN = In Only | OUT = Out Only | L = Approved Leave | WO = Week Off | A = Absent | - = Upcoming"]);
+  matrixAOA.push([]); // blank line
+
+  const weekdayShorts = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+  const matrixHeader = ["S.No", "Branch", "Employee ID", "Employee Name"];
+  for (let d = 1; d <= daysInMonth; d++) {
+    const curDate = new Date(y, m, d);
+    const wd = weekdayShorts[curDate.getDay()];
+    matrixHeader.push(`${d} (${wd})`);
+  }
+  matrixHeader.push("Total Present", "Approved Leaves", "Days Absent", "Attendance %");
+  matrixAOA.push(matrixHeader);
+
+  const today = new Date();
+  const isCurrentMonth = (today.getFullYear() === y && today.getMonth() === m);
+  const currentDay = today.getDate();
+
+  allEmps.forEach((empId, idx) => {
+    const s = getMySettings(empId);
+    const name = (s.displayName && s.displayName.trim().length > 0) ? s.displayName.trim() : empId;
+    const branchName = s.branch || "Unassigned";
+    const weekOffs = s.weekOffs || [1, 7]; // 1 = Sun, 7 = Sat
+
+    // Map of day number -> { in: bool, out: bool }
+    const dayPunches = {};
+    attendances.forEach(a => {
+      if (a.employeeId.toLowerCase() !== empId.toLowerCase()) return;
+      const ad = new Date(a.timestamp);
+      if (ad.getFullYear() === y && ad.getMonth() === m) {
+        const dNum = ad.getDate();
+        if (!dayPunches[dNum]) dayPunches[dNum] = { in: false, out: false };
+        const t = (a.type || "").toUpperCase().trim();
+        if (t === "IN") dayPunches[dNum].in = true;
+        if (t === "OUT") dayPunches[dNum].out = true;
+      }
+    });
+
+    // Set of approved leave dates
+    const leaveDays = new Set();
+    leaveRequests.forEach(l => {
+      if (l.employeeId.toLowerCase() !== empId.toLowerCase()) return;
+      if (l.status !== "APPROVED") return;
+      const ld = new Date(l.dateTimestamp);
+      if (ld.getFullYear() === y && ld.getMonth() === m) {
+        leaveDays.add(ld.getDate());
+      }
+    });
+
+    let countPresent = 0;
+    let countLeave = 0;
+    let countAbsent = 0;
+    let countWorkingDays = 0;
+
+    const row = [idx + 1, branchName, empId, name];
+
+    for (let d = 1; d <= daysInMonth; d++) {
+      const curDate = new Date(y, m, d);
+      const dayOfWeek = curDate.getDay() + 1; // 1 = Sun, 7 = Sat
+      const isWeekOff = weekOffs.includes(dayOfWeek);
+      const isFuture = isCurrentMonth && (d > currentDay);
+
+      if (!isWeekOff && (!isCurrentMonth || d <= currentDay)) {
+        countWorkingDays++;
+      }
+
+      if (isFuture) {
+        row.push("-");
+        continue;
+      }
+
+      const punches = dayPunches[d];
+      const isLeave = leaveDays.has(d);
+
+      if (punches && punches.in && punches.out) {
+        row.push(isWeekOff ? "P (WO)" : "P");
+        countPresent++;
+      } else if (punches && punches.in) {
+        row.push("IN");
+      } else if (punches && punches.out) {
+        row.push("OUT");
+      } else if (isLeave) {
+        row.push("L");
+        countLeave++;
+      } else if (isWeekOff) {
+        row.push("WO");
+      } else {
+        row.push("A");
+        countAbsent++;
+      }
+    }
+
+    const attPct = countWorkingDays > 0 ? `${((countPresent / countWorkingDays) * 100).toFixed(1)}%` : "0.0%";
+    row.push(countPresent, countLeave, countAbsent, attPct);
+    matrixAOA.push(row);
+  });
+
+  const wsMatrix = XLSX.utils.aoa_to_sheet(matrixAOA);
+  const matrixCols = [
+    { wch: 6 },  // S.No
+    { wch: 18 }, // Branch
+    { wch: 28 }, // Employee ID
+    { wch: 22 }  // Employee Name
+  ];
+  for (let d = 1; d <= daysInMonth; d++) {
+    matrixCols.push({ wch: 8 });
+  }
+  matrixCols.push({ wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 16 });
+  wsMatrix["!cols"] = matrixCols;
+
+  // ----------------------------------------------------
+  // Build Workbook and Trigger Download
+  // ----------------------------------------------------
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, wsSummary, "Summary & Payroll");
+  XLSX.utils.book_append_sheet(wb, wsMatrix, "Daily Attendance");
+
+  const fileName = `Monthly_Report_${monthName}_${y}.xlsx`;
+  XLSX.writeFile(wb, fileName);
+
+  showReportDownloadToast(`Report downloaded: ${fileName}`);
+}
+
+// ==========================================
+// Export CSV for Monthly Report
+// ==========================================
+function exportMonthlyCsv(targetYear, targetMonth) {
+  const y = (typeof targetYear === "number") ? targetYear : reportSelectedYear;
+  const m = (typeof targetMonth === "number") ? targetMonth : reportSelectedMonth;
+
+  const allEmps = Array.from(new Set([
+    ...employeeSettingsList.map(s => s.employeeId.toLowerCase()),
+    ...attendances.map(a => a.employeeId.toLowerCase())
+  ])).filter(e => e !== "admin");
+
+  allEmps.sort((a, b) => {
+    const brA = (getMySettings(a).branch || "ZZZ_NoBranch").toLowerCase();
+    const brB = (getMySettings(b).branch || "ZZZ_NoBranch").toLowerCase();
+    if (brA !== brB) return brA.localeCompare(brB);
+    const nameA = (getMySettings(a).displayName || a).toLowerCase();
+    const nameB = (getMySettings(b).displayName || b).toLowerCase();
+    return nameA.localeCompare(nameB);
+  });
+
+  let csv = "Branch,Employee Name,Base Salary,Total Working Days,Days Present,Approved Leaves,Days Absent,Per Day Salary,Deduction,Net Salary\n";
+  allEmps.forEach(empId => {
+    const s = getMySettings(empId);
+    const name = (s.displayName && s.displayName.trim().length > 0) ? s.displayName.trim() : empId;
+    const branchName = s.branch || "No Branch";
+    const calc = calculateSalaryForEmployee(empId, y, m);
+    csv += `"${branchName}","${name}",${calc.baseSalary},${calc.totalWorkingDays},${calc.presentDays},${calc.approvedLeaveDays},${calc.absentDays},${calc.perDaySalary.toFixed(2)},${calc.deduction.toFixed(2)},${calc.netSalary.toFixed(2)}\n`;
+  });
+
+  const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
+  const url = URL.createObjectURL(blob);
+  const link = document.createElement("a");
+  link.setAttribute("href", url);
+  link.setAttribute("download", `monthly_report_${y}_${m + 1}.csv`);
+  document.body.appendChild(link);
+  link.click();
+  document.body.removeChild(link);
+
+  showReportDownloadToast(`CSV Report downloaded for ${m + 1}/${y}`);
+}
+
+// ==========================================
+// End-of-Month Detection and Smart Prompt
+// ==========================================
+function checkAndRenderEndOfMonthAlert() {
+  if (!isAdmin) return;
+  const container = document.getElementById("admin-eom-banner-container");
+  if (!container) return;
+
+  const now = new Date();
+  const curY = now.getFullYear();
+  const curM = now.getMonth();
+  const curD = now.getDate();
+  const daysInCurMonth = new Date(curY, curM + 1, 0).getDate();
+
+  // Target closed period: previous month
+  let targetY = curY;
+  let targetM = curM - 1;
+  if (targetM < 0) {
+    targetM = 11;
+    targetY--;
+  }
+
+  // If in last 3 days of current month, also consider current month
+  const isClosingCurrent = curD >= (daysInCurMonth - 2);
+  const effectiveY = isClosingCurrent ? curY : targetY;
+  const effectiveM = isClosingCurrent ? curM : targetM;
+
+  const monthNames = [
+    "January", "February", "March", "April", "May", "June",
+    "July", "August", "September", "October", "November", "December"
+  ];
+  const targetMonthName = monthNames[effectiveM];
+
+  const monthKey = `${effectiveY}-${String(effectiveM + 1).padStart(2, "0")}`;
+  const isDismissed = localStorage.getItem("attend_eom_dismissed_month") === monthKey;
+
+  if (isDismissed) {
+    container.innerHTML = `
+      <div class="eom-mini-badge" id="btn-reopen-eom">
+        <span style="font-size: 0.82rem; font-weight: 600; color: #3730A3; display: flex; align-items: center; gap: 6px;">
+          <span>📊</span> ${targetMonthName} ${effectiveY} Monthly Report Ready
+        </span>
+        <span style="font-size: 0.78rem; font-weight: 700; color: #4F46E5; text-decoration: underline;">
+          Download Excel (.xlsx)
+        </span>
+      </div>
+    `;
+    const reopenEl = document.getElementById("btn-reopen-eom");
+    if (reopenEl) {
+      reopenEl.addEventListener("click", () => {
+        generateMonthlyExcelReport(effectiveY, effectiveM);
+      });
+    }
+    return;
+  }
+
+  container.innerHTML = `
+    <div class="eom-banner-card" id="eom-card">
+      <div class="eom-header">
+        <div>
+          <div class="eom-badge">
+            <svg width="12" height="12" viewBox="0 0 24 24" fill="currentColor"><path d="M9 16.17L4.83 12l-1.42 1.41L9 19 21 7l-1.41-1.41z"/></svg>
+            End of Month Report
+          </div>
+          <div class="eom-title">${targetMonthName} ${effectiveY} Monthly Report</div>
+        </div>
+        <button type="button" class="eom-btn-close" id="btn-dismiss-eom" title="Dismiss banner">&times;</button>
+      </div>
+      <div class="eom-desc">
+        ${isClosingCurrent ? 'The current month attendance period is concluding.' : 'The previous month attendance and payroll period is completed.'} Generate the official multi-sheet Excel (.xlsx) file including employee summaries and the full daily punch matrix.
+      </div>
+      <div class="eom-actions">
+        <button type="button" class="eom-btn-download" id="btn-eom-download">
+          <svg width="18" height="18" viewBox="0 0 24 24" fill="currentColor"><path d="M19 9h-4V3H9v6H5l7 7 7-7zM5 18v2h14v-2H5z"/></svg>
+          Download Excel Report
+        </button>
+        <button type="button" class="eom-btn-view" id="btn-eom-view">
+          View Report
+        </button>
+      </div>
+    </div>
+  `;
+
+  const btnDownload = document.getElementById("btn-eom-download");
+  if (btnDownload) {
+    btnDownload.addEventListener("click", () => {
+      generateMonthlyExcelReport(effectiveY, effectiveM);
+    });
+  }
+
+  const btnView = document.getElementById("btn-eom-view");
+  if (btnView) {
+    btnView.addEventListener("click", () => {
+      reportSelectedYear = effectiveY;
+      reportSelectedMonth = effectiveM;
+      showView(viewAdminReport);
+      renderMonthlyReportScreen();
+    });
+  }
+
+  const btnDismiss = document.getElementById("btn-dismiss-eom");
+  if (btnDismiss) {
+    btnDismiss.addEventListener("click", () => {
+      localStorage.setItem("attend_eom_dismissed_month", monthKey);
+      checkAndRenderEndOfMonthAlert();
+    });
+  }
+}
+
+// Download Toast Helper
+function showReportDownloadToast(message) {
+  let toast = document.getElementById("report-download-toast");
+  if (!toast) {
+    toast = document.createElement("div");
+    toast.id = "report-download-toast";
+    toast.style.cssText = `
+      position: fixed;
+      bottom: 24px;
+      left: 50%;
+      transform: translateX(-50%) translateY(20px);
+      background: #111827;
+      color: #FFFFFF;
+      padding: 12px 20px;
+      border-radius: 12px;
+      font-size: 0.88rem;
+      font-weight: 500;
+      box-shadow: 0 10px 25px rgba(0,0,0,0.25);
+      z-index: 999999;
+      opacity: 0;
+      transition: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      max-width: 90%;
+      pointer-events: none;
+    `;
+    document.body.appendChild(toast);
+  }
+  toast.innerHTML = `
+    <span style="display: inline-flex; align-items: center; justify-content: center; width: 22px; height: 22px; background: #10B981; border-radius: 50%; color: #FFF; font-size: 13px;">✓</span>
+    <span>${message}</span>
+  `;
+  requestAnimationFrame(() => {
+    toast.style.opacity = "1";
+    toast.style.transform = "translateX(-50%) translateY(0)";
+  });
+  setTimeout(() => {
+    toast.style.opacity = "0";
+    toast.style.transform = "translateX(-50%) translateY(20px)";
+  }, 4000);
+}
+
+// Wire up Monthly Report Export buttons
+const btnAdminExportExcel = document.getElementById("btn-admin-export-excel");
+if (btnAdminExportExcel) {
+  btnAdminExportExcel.addEventListener("click", () => {
+    generateMonthlyExcelReport(reportSelectedYear, reportSelectedMonth);
+  });
+}
+
+const btnAdminLastMonthExcel = document.getElementById("btn-admin-last-month-excel");
+if (btnAdminLastMonthExcel) {
+  btnAdminLastMonthExcel.addEventListener("click", () => {
+    const now = new Date();
+    let prevY = now.getFullYear();
+    let prevM = now.getMonth() - 1;
+    if (prevM < 0) {
+      prevM = 11;
+      prevY--;
+    }
+    generateMonthlyExcelReport(prevY, prevM);
+  });
+}
+
 const btnAdminExportReportCsv = document.getElementById("btn-admin-export-csv");
 if (btnAdminExportReportCsv) {
   btnAdminExportReportCsv.addEventListener("click", () => {
-    const allEmps = Array.from(new Set([
-      ...employeeSettingsList.map(s => s.employeeId.toLowerCase()),
-      ...attendances.map(a => a.employeeId.toLowerCase())
-    ])).filter(e => e !== "admin");
-
-    // Sort employees by branch
-    allEmps.sort((a, b) => {
-      const brA = (getMySettings(a).branch || "ZZZ_NoBranch").toLowerCase();
-      const brB = (getMySettings(b).branch || "ZZZ_NoBranch").toLowerCase();
-      if (brA !== brB) return brA.localeCompare(brB);
-      const nameA = (getMySettings(a).displayName || a).toLowerCase();
-      const nameB = (getMySettings(b).displayName || b).toLowerCase();
-      return nameA.localeCompare(nameB);
-    });
-
-    let csv = "Branch,Employee Name,Base Salary,Total Working Days,Days Present,Approved Leaves,Days Absent,Per Day Salary,Deduction,Net Salary\n";
-    allEmps.forEach(empId => {
-      const s = getMySettings(empId);
-      const name = (s.displayName && s.displayName.trim().length > 0) ? s.displayName.trim() : empId;
-      const branchName = s.branch || "No Branch";
-      const calc = calculateSalaryForEmployee(empId, reportSelectedYear, reportSelectedMonth);
-      csv += `"${branchName}","${name}",${calc.baseSalary},${calc.totalWorkingDays},${calc.presentDays},${calc.approvedLeaveDays},${calc.absentDays},${calc.perDaySalary.toFixed(2)},${calc.deduction.toFixed(2)},${calc.netSalary.toFixed(2)}\n`;
-    });
-
-    const blob = new Blob([csv], { type: "text/csv;charset=utf-8;" });
-    const url = URL.createObjectURL(blob);
-    const link = document.createElement("a");
-    link.setAttribute("href", url);
-    link.setAttribute("download", `monthly_report_${reportSelectedYear}_${reportSelectedMonth + 1}.csv`);
-    document.body.appendChild(link);
-    link.click();
-    document.body.removeChild(link);
+    exportMonthlyCsv(reportSelectedYear, reportSelectedMonth);
   });
 }
 
