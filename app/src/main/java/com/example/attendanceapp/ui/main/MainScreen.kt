@@ -45,7 +45,7 @@ import com.example.attendanceapp.MarkAttendance
 import com.example.attendanceapp.Calculator
 import com.example.attendanceapp.ViewAttendance
 import com.example.attendanceapp.RequestLeave
-import com.example.attendanceapp.ChatListScreenKey
+
 import com.example.attendanceapp.data.AttendanceType
 
 @Composable
@@ -67,15 +67,7 @@ fun MainScreen(
     }
     
     Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(
-                onClick = { onItemClick(ChatListScreenKey) },
-                containerColor = androidx.compose.ui.graphics.Color.Red,
-                contentColor = androidx.compose.ui.graphics.Color.White
-            ) {
-                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Chat")
-            }
-        },
+        
         modifier = modifier.fillMaxSize()
     ) { paddingValues ->
         PullToRefreshBox(

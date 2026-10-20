@@ -34,7 +34,7 @@ import coil.compose.AsyncImage
 import com.example.attendanceapp.AdminEmployeeDetail
 import com.example.attendanceapp.ManageLeaves
 import com.example.attendanceapp.ManageBranches
-import com.example.attendanceapp.ChatListScreenKey
+
 import android.app.Activity
 import android.content.Intent
 import android.widget.Toast
@@ -98,11 +98,7 @@ fun AdminDashboardScreen(
     }
 
     Scaffold(
-        floatingActionButton = {
-            FloatingActionButton(onClick = { onNavigate(ChatListScreenKey) }, containerColor = androidx.compose.ui.graphics.Color.Red, contentColor = androidx.compose.ui.graphics.Color.White) {
-                Icon(Icons.AutoMirrored.Filled.Chat, contentDescription = "Chat")
-            }
-        },
+
         modifier = modifier.fillMaxSize()
     ) { paddingValues ->
         PullToRefreshBox(
