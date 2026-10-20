@@ -1652,7 +1652,7 @@ function renderAdminDashboard() {
           <div style="font-weight: 600; font-size: 1rem; color: var(--text-primary); overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${displayName}</div>
           ${s.displayName && s.displayName.trim().length > 0 ? `<div style="font-size: 0.85rem; color: var(--text-secondary); margin-top: 2px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;">${empId}</div>` : ''}
           <div style="margin-top: 4px;">
-            <span class="branch-badge ${s.branch ? \'\' : \'unassigned\'}">${branchName}</span>
+            <span class="branch-badge ${s.branch ? '' : 'unassigned'}">${branchName}</span>
           </div>
         </div>
         <div style="color: var(--text-secondary); font-size: 1.2rem; padding-left: 8px;">&rsaquo;</div>
@@ -1719,7 +1719,7 @@ function openAdminEmployeeDetail(employeeId) {
       const bInM = String(b.checkInTimeMinutes ?? 0).padStart(2, "0");
       const bOutH = String(b.checkOutTimeHours ?? 17).padStart(2, "0");
       const bOutM = String(b.checkOutTimeMinutes ?? 0).padStart(2, "0");
-      branchOptions += `<option value="${b.name}" ${isSel ? \'selected\' : \'\'}>${b.name} (${bInH}:${bInM} - ${bOutH}:${bOutM})</option>`;
+      branchOptions += `<option value="${b.name}" ${isSel ? 'selected' : ''}>${b.name} (${bInH}:${bInM} - ${bOutH}:${bOutM})</option>`;
     });
     branchSelect.innerHTML = branchOptions;
 
@@ -2342,7 +2342,7 @@ function renderAdminLeavesList() {
       <div style="background: #FFFFFF; border: 1px solid #E0E0E0; border-radius: 12px; padding: 16px; margin-bottom: 12px; box-shadow: 0 1px 3px rgba(0,0,0,0.06);">
         <div style="display: flex; justify-content: space-between; align-items: flex-start; margin-bottom: 4px;">
           <div style="font-size: 1rem; font-weight: 600; color: var(--primary);">Employee: ${empName}</div>
-          <span class="branch-badge ${s.branch ? \'\' : \'unassigned\'}">${branchName}</span>
+          <span class="branch-badge ${s.branch ? '' : 'unassigned'}">${branchName}</span>
         </div>
         <div style="font-size: 0.95rem; margin-bottom: 4px; color: var(--text-primary);">Date: ${dateStr}</div>
         <div style="font-size: 0.9rem; color: var(--text-secondary); margin-bottom: 12px;">Reason: ${req.reason || "N/A"}</div>
@@ -2481,7 +2481,7 @@ function renderMonthlyReportScreen() {
             <div style="font-size: 1.05rem; font-weight: 600; color: var(--text-primary);">${name}</div>
             <div style="font-size: 0.82rem; color: var(--text-secondary); margin-bottom: 12px;">${empId}</div>
           </div>
-          <span class="branch-badge ${s.branch ? \'\' : \'unassigned\'}">${branchName}</span>
+          <span class="branch-badge ${s.branch ? '' : 'unassigned'}">${branchName}</span>
         </div>
 
         <div style="display: flex; justify-content: space-between; margin-bottom: 4px; font-size: 0.9rem;">
