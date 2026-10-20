@@ -2627,7 +2627,7 @@ function renderAdminBranchesList() {
         </div>
 
         <div style="font-size: 0.74rem; color: var(--text-secondary);">
-          â„¹ï¸ Employees under this branch inherit this shift time & location. Week offs remain individual per employee.
+          Employees under this branch inherit this shift time & location. Week offs remain individual per employee.
         </div>
       </div>
     `;
