@@ -1407,12 +1407,12 @@ if (profileEditForm) {
 const btnStartCamera = document.getElementById('btn-start-camera');
 const btnCapturePhotoProfile = document.getElementById('btn-capture-photo');
 const videoStream = document.getElementById('camera-stream');
-let mediaStream = null;
+let profileMediaStream = null;
 if (btnStartCamera && btnCapturePhotoProfile && videoStream) {
   btnStartCamera.addEventListener('click', async () => {
     try {
-      mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
-      videoStream.srcObject = mediaStream;
+      profileMediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      videoStream.srcObject = profileMediaStream;
       videoStream.style.display = 'block';
       btnCapturePhotoProfile.style.display = 'inline-block';
       btnStartCamera.style.display = 'none';
@@ -1421,7 +1421,7 @@ if (btnStartCamera && btnCapturePhotoProfile && videoStream) {
     }
   });
   btnCapturePhotoProfile.addEventListener('click', () => {
-    if (!mediaStream) return;
+    if (!profileMediaStream) return;
     const canvas = document.createElement('canvas');
     canvas.width = videoStream.videoWidth;
     canvas.height = videoStream.videoHeight;
@@ -1431,8 +1431,8 @@ if (btnStartCamera && btnCapturePhotoProfile && videoStream) {
     const avatarPreview = document.getElementById('avatar-preview');
     if (avatarPreview) avatarPreview.src = dataUrl;
     // Stop the camera stream
-    mediaStream.getTracks().forEach(track => track.stop());
-    mediaStream = null;
+    profileMediaStream.getTracks().forEach(track => track.stop());
+    profileMediaStream = null;
     videoStream.style.display = 'none';
     btnCapturePhotoProfile.style.display = 'none';
     btnStartCamera.style.display = 'inline-block';
