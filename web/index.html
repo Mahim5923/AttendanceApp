@@ -39,7 +39,7 @@
         <!-- 220dp Banner Logo -->
         <img src="icons/logo.png?v=2" alt="Company Logo" class="android-banner">
 
-        <form id="login-form" style="width: 100%;" novalidate onsubmit="event.preventDefault(); return false;">
+        <form id="login-form" style="width: 100%;" novalidate>
           <div class="form-group">
             <label class="field-label" id="lbl-email">Email</label>
             <input type="text" id="login-email" class="outlined-field" placeholder="Enter your email or admin" required
@@ -55,8 +55,7 @@
           <div id="login-error-banner" class="error-banner" style="display: none;"></div>
           <div id="login-success-banner" class="success-banner" style="display: none;"></div>
 
-          <button type="button" class="btn-m3" id="btn-login-submit"
-            onclick="if (window.triggerLogin) window.triggerLogin();" style="margin-bottom: 8px;">
+          <button type="submit" class="btn-m3" id="btn-login-submit" style="margin-bottom: 8px;">
             <span id="txt-login-btn">Login</span>
           </button>
         </form>
