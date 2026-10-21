@@ -402,8 +402,16 @@ async function performLogin() {
 
   try {
     // 1. Attempt standard Firebase Auth sign-in
-    await signInWithEmailAndPassword(auth, targetEmail, pass);
+    const cred = await signInWithEmailAndPassword(auth, targetEmail, pass);
     console.log('Login successful for', targetEmail);
+    currentUser = cred.user;
+    const userEmail = (currentUser.email || targetEmail).toLowerCase();
+    isAdmin = DEFAULT_ADMIN_EMAILS.includes(userEmail);
+    showView(isAdmin ? viewAdmin : viewMain);
+    updateWelcomeText();
+    hideAuthBanners();
+    setupFirestoreListeners(userEmail);
+    if (isAdmin) renderAdminDashboard();
   } catch (err) {
     console.error("Sign-in error:", err);
     const errCode = err.code || "";
@@ -418,19 +426,14 @@ async function performLogin() {
     let msg = errMsg || (isHindi ? "लॉगिन विफल रहा।" : "Login failed.");
     if (errCode === "auth/user-not-found") {
       msg = isHindi
-        ? "खाता मौजूद नहीं है। पहुँच अस्वीकृत। कृपया व्यवस्थापक से संपर्क करें।"
-        : "Account does not exist. Access denied. Please contact your administrator.";
+        ? "खाता मौजूद नहीं है। कृपया व्यवस्थापक से संपर्क करें।"
+        : "Account does not exist. Please check your email or contact your administrator.";
     } else if (errCode === "auth/wrong-password") {
       msg = isHindi ? "गलत पासवर्ड। कृपया पुनः प्रयास करें।" : "Incorrect password. Please try again.";
     } else if (isCredentialError) {
-      const emailLower = targetEmail.toLowerCase();
-      if (emailLower === "mahimsinhsingoria@gmail.com" || emailLower === "nkjainnilesh@gmail.com") {
-        msg = isHindi ? "एडमिन पासवर्ड गलत है। कृपया पुनः प्रयास करें।" : "Incorrect admin password. Please try again.";
-      } else {
-        msg = isHindi
-          ? "खाता मौजूद नहीं है या अमान्य विवरण। पहुँच अस्वीकृत। कृपया व्यवस्थापक से संपर्क करें।"
-          : "Account does not exist or invalid credentials. Access denied. Please contact your administrator.";
-      }
+      msg = isHindi
+        ? "अमान्य ईमेल या पासवर्ड। कृपया पुनः प्रयास करें।"
+        : "Invalid email or password. Please try again.";
     } else if (errCode === "auth/invalid-email") {
       msg = isHindi ? "अमान्य ईमेल पता।" : "Invalid email format. Please check your email.";
     } else if (errCode === "auth/network-request-failed") {
@@ -439,11 +442,15 @@ async function performLogin() {
       msg = isHindi ? "बहुत सारे असफल प्रयास। कृपया थोड़ी देर बाद पुनः प्रयास करें।" : "Access temporarily disabled due to many failed attempts. Try again later.";
     } else if (errCode === "auth/user-disabled") {
       msg = isHindi ? "यह खाता अक्षम कर दिया गया है।" : "This account has been disabled.";
-      } else if (errCode === "auth/unauthorized-domain") {
-        msg = isHindi ? "अनधिकृत डोमेन। कृपया Firebase कंसोल में डोमेन जोड़ें।" : "Unauthorized domain. Please add the site domain in Firebase console.";
+    } else if (errCode === "auth/unauthorized-domain") {
+      const currentHost = window.location.hostname;
+      msg = isHindi
+        ? `अनधिकृत डोमेन (${currentHost})। कृपया Firebase कंसोल में Authorized Domains में '${currentHost}' जोड़ें।`
+        : `Unauthorized domain (${currentHost}). Please add '${currentHost}' to Firebase Console -> Authentication -> Settings -> Authorized Domains.`;
     }
 
     showAuthError(msg);
+    alert(msg);
   } finally {
     if (btn) btn.disabled = false;
     applyTranslations();
@@ -491,19 +498,23 @@ onAuthStateChanged(auth, async (user) => {
   currentUser = user;
   if (user) {
     const userEmail = (user.email || "").toLowerCase();
-    // Load admin emails from Firestore
-    await loadAdminEmails();
-    isAdmin = adminEmails.includes(userEmail) || DEFAULT_ADMIN_EMAILS.includes(userEmail);
-    console.log('Admin emails loaded, isAdmin:', isAdmin);
-    setupFirestoreListeners(userEmail);
+    isAdmin = DEFAULT_ADMIN_EMAILS.includes(userEmail);
+    showView(isAdmin ? viewAdmin : viewMain);
     updateWelcomeText();
+    hideAuthBanners();
+    if (isAdmin) renderAdminDashboard();
 
-    if (isAdmin) {
-      showView(viewAdmin);
-      renderAdminDashboard();
-    } else {
-      showView(viewMain);
-    }
+    // Load admin emails asynchronously in background without blocking UI
+    loadAdminEmails().then(() => {
+      const updatedAdmin = adminEmails.includes(userEmail) || DEFAULT_ADMIN_EMAILS.includes(userEmail);
+      if (updatedAdmin !== isAdmin) {
+        isAdmin = updatedAdmin;
+        showView(isAdmin ? viewAdmin : viewMain);
+        if (isAdmin) renderAdminDashboard();
+      }
+    }).catch(e => console.warn("Admin email check:", e));
+
+    setupFirestoreListeners(userEmail);
   } else {
     detachListeners();
     showView(viewLogin);
@@ -622,12 +633,13 @@ function setupFirestoreListeners(email) {
   let db = getDb();
 pendingListeners = TOTAL_FIRESTORE_LISTENERS;
 showSpinner();
+setTimeout(() => hideSpinner(), 3000);
 
   const handleListenerError = (err, context) => {
     console.error(`Firestore error in ${context}:`, err);
+    listenerResolved();
     if (err.code === "not-found" || err.message?.includes("database")) {
       db = fallbackToDefaultDb();
-      setupFirestoreListeners(email);
     }
   };
 

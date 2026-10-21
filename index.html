@@ -39,7 +39,7 @@
         <!-- 220dp Banner Logo -->
         <img src="icons/logo.png?v=2" alt="Company Logo" class="android-banner">
 
-        <form id="login-form" style="width: 100%;" novalidate onsubmit="event.preventDefault(); return false;">
+        <form id="login-form" style="width: 100%;" novalidate onsubmit="event.preventDefault(); if (window.triggerLogin) window.triggerLogin(); return false;">
           <div class="form-group">
             <label class="field-label" id="lbl-email">Email</label>
             <input type="text" id="login-email" class="outlined-field" placeholder="Enter your email or admin" required
@@ -55,8 +55,7 @@
           <div id="login-error-banner" class="error-banner" style="display: none;"></div>
           <div id="login-success-banner" class="success-banner" style="display: none;"></div>
 
-          <button type="button" class="btn-m3" id="btn-login-submit"
-            onclick="if (window.triggerLogin) window.triggerLogin();" style="margin-bottom: 8px;">
+          <button type="button" class="btn-m3" id="btn-login-submit" onclick="if (window.triggerLogin) window.triggerLogin();" style="margin-bottom: 8px;">
             <span id="txt-login-btn">Login</span>
           </button>
         </form>
@@ -107,12 +106,7 @@
         <button type="button" class="btn-text" id="btn-logout" style="margin-top: 16px;">Logout</button>
       </div>
 
-      <!-- Floating Action Button for Chat (Bottom-Right) -->
-      <button class="fab-chat" id="fab-chat-btn" title="Chat" aria-label="Chat">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
-        </svg>
-      </button>
+
     </div>
 
     <!-- ==========================================
@@ -216,18 +210,7 @@
     <!-- ==========================================
          6. CHAT SCREEN
          ========================================== -->
-    <div class="view" id="view-chat">
-      <div style="display: flex; justify-content: space-between; align-items: center; margin-bottom: 12px;">
-        <h2 style="font-size: 1.3rem;" id="chat-title">Chat with Admin</h2>
-        <button class="btn-text" id="btn-back-from-chat">Back</button>
-      </div>
-      <div class="chat-thread" id="chat-thread-container"></div>
-      <form id="chat-form" style="display: flex; gap: 8px; margin-top: 10px;">
-        <input type="text" id="chat-input-msg" class="outlined-field" placeholder="Type a message..." required
-          style="flex: 1;">
-        <button type="submit" class="btn-m3" style="width: 80px; margin-bottom: 0;">Send</button>
-      </form>
-    </div>
+
 
     <!-- ==========================================
          7. PROFILE SCREEN
@@ -242,9 +225,9 @@
         <img id="avatar-preview" src="icons/logo.png" alt="Avatar"
           style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); margin-bottom: 12px;">
         <div>
-          <input type="file" id="avatar-file-input" accept="image/*" style="display: none;">
-          <button type="button" class="btn-text" onclick="document.getElementById('avatar-file-input').click()">Change
-            Photo</button>
+            <button type="button" class="btn-text" id="btn-start-camera">Take Photo</button>
+            <video id="camera-stream" autoplay style="display:none;width:90px;height:90px;border-radius:50%;object-fit:cover;border:2px solid var(--primary);margin-bottom:12px;"></video>
+            <button type="button" class="btn-text" id="btn-capture-photo" style="display:none;">Capture</button>
         </div>
       </div>
 
@@ -302,12 +285,7 @@
       <!-- List of Employee Cards (Matches Android Card with 50dp avatar, name, and email) -->
       <div id="admin-staff-list" style="overflow-y: auto; flex: 1;"></div>
 
-      <!-- Floating Action Button for Chat (Bottom-Right) -->
-      <button class="fab-chat" id="fab-admin-chat-btn" title="Chat" aria-label="Chat">
-        <svg width="24" height="24" viewBox="0 0 24 24" fill="currentColor">
-          <path d="M20 2H4c-1.1 0-1.99.9-1.99 2L2 22l4-4h14c1.1 0 2-.9 2-2V4c0-1.1-.9-2-2-2zM6 9h12v2H6V9zm8 5H6v-2h8v2zm4-6H6V6h12v2z"/>
-        </svg>
-      </button>
+
     </div>
 
     <!-- ==========================================
@@ -762,7 +740,7 @@
 
   </div>
 
-  <script type="module" src="js/app.js?v=6.1"></script>
+  <script type="module" src="js/app.js?v=7.0" defer></script>
 </body>
 
 </html>
