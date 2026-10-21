@@ -1396,13 +1396,13 @@ const btnStartCamera = document.getElementById('btn-start-camera');
 const btnCapturePhotoProfile = document.getElementById('btn-capture-photo');
 const videoStream = document.getElementById('camera-stream');
 let mediaStream = null;
-if (btnStartCamera && btnCapturePhoto && videoStream) {
+if (btnStartCamera && btnCapturePhotoProfile && videoStream) {
   btnStartCamera.addEventListener('click', async () => {
     try {
       mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
       videoStream.srcObject = mediaStream;
       videoStream.style.display = 'block';
-      btnCapturePhoto.style.display = 'inline-block';
+      btnCapturePhotoProfile.style.display = 'inline-block';
       btnStartCamera.style.display = 'none';
     } catch (err) {
       alert('Camera access denied or unavailable.');
@@ -1422,7 +1422,7 @@ if (btnStartCamera && btnCapturePhoto && videoStream) {
     mediaStream.getTracks().forEach(track => track.stop());
     mediaStream = null;
     videoStream.style.display = 'none';
-    btnCapturePhoto.style.display = 'none';
+    btnCapturePhotoProfile.style.display = 'none';
     btnStartCamera.style.display = 'inline-block';
   });
 }
