@@ -372,6 +372,7 @@ async function performLogin() {
   const passInput = document.getElementById("login-password");
   const rawInput = (emailInput?.value || "").trim();
   const pass = (passInput?.value || "");
+  console.log('Login attempt with email:', rawInput, 'password length:', pass.length);
   const btn = document.getElementById("btn-login-submit");
   const txtBtn = document.getElementById("txt-login-btn");
 
@@ -402,6 +403,7 @@ async function performLogin() {
   try {
     // 1. Attempt standard Firebase Auth sign-in
     await signInWithEmailAndPassword(auth, targetEmail, pass);
+    console.log('Login successful for', targetEmail);
   } catch (err) {
     console.error("Sign-in error:", err);
     const errCode = err.code || "";
@@ -452,17 +454,12 @@ async function performLogin() {
 window.triggerLogin = performLogin;
 
 // Bind both button click and form submit listeners
-const btnLoginSubmit = document.getElementById("btn-login-submit");
-if (btnLoginSubmit) {
-  btnLoginSubmit.addEventListener("click", (e) => {
-    e.preventDefault();
-    performLogin();
-  });
-}
+// Button click handler removed; form submit listener (above) handles login
 
 const loginForm = document.getElementById("login-form");
 if (loginForm) {
   loginForm.addEventListener("submit", (e) => {
+    console.log('Login form submitted');
     e.preventDefault();
     performLogin();
   });
@@ -497,6 +494,7 @@ onAuthStateChanged(auth, async (user) => {
     // Load admin emails from Firestore
     await loadAdminEmails();
     isAdmin = adminEmails.includes(userEmail) || DEFAULT_ADMIN_EMAILS.includes(userEmail);
+    console.log('Admin emails loaded, isAdmin:', isAdmin);
     setupFirestoreListeners(userEmail);
     updateWelcomeText();
 
