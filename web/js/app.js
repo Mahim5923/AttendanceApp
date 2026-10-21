@@ -1393,7 +1393,7 @@ if (profileEditForm) {
 
 // Camera capture for profile photo
 const btnStartCamera = document.getElementById('btn-start-camera');
-const btnCapturePhoto = document.getElementById('btn-capture-photo');
+const btnCapturePhotoProfile = document.getElementById('btn-capture-photo');
 const videoStream = document.getElementById('camera-stream');
 let mediaStream = null;
 if (btnStartCamera && btnCapturePhoto && videoStream) {
@@ -1408,7 +1408,7 @@ if (btnStartCamera && btnCapturePhoto && videoStream) {
       alert('Camera access denied or unavailable.');
     }
   });
-  btnCapturePhoto.addEventListener('click', () => {
+  btnCapturePhotoProfile.addEventListener('click', () => {
     if (!mediaStream) return;
     const canvas = document.createElement('canvas');
     canvas.width = videoStream.videoWidth;
