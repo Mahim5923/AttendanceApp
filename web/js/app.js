@@ -1391,20 +1391,43 @@ if (profileEditForm) {
   });
 }
 
-const avatarFileInput = document.getElementById("avatar-file-input");
-if (avatarFileInput) {
-  avatarFileInput.addEventListener("change", (e) => {
-    const file = e.target.files[0];
-    if (!file) return;
-    const reader = new FileReader();
-    reader.onload = (ev) => {
-      const avatarPreview = document.getElementById("avatar-preview");
-      if (avatarPreview) avatarPreview.src = ev.target.result;
-    };
-    reader.readAsDataURL(file);
+// Removed file input handling; camera UI handles profile photo capture
+
+// Camera capture for profile photo
+const btnStartCamera = document.getElementById('btn-start-camera');
+const btnCapturePhoto = document.getElementById('btn-capture-photo');
+const videoStream = document.getElementById('camera-stream');
+let mediaStream = null;
+if (btnStartCamera && btnCapturePhoto && videoStream) {
+  btnStartCamera.addEventListener('click', async () => {
+    try {
+      mediaStream = await navigator.mediaDevices.getUserMedia({ video: true });
+      videoStream.srcObject = mediaStream;
+      videoStream.style.display = 'block';
+      btnCapturePhoto.style.display = 'inline-block';
+      btnStartCamera.style.display = 'none';
+    } catch (err) {
+      alert('Camera access denied or unavailable.');
+    }
+  });
+  btnCapturePhoto.addEventListener('click', () => {
+    if (!mediaStream) return;
+    const canvas = document.createElement('canvas');
+    canvas.width = videoStream.videoWidth;
+    canvas.height = videoStream.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(videoStream, 0, 0, canvas.width, canvas.height);
+    const dataUrl = canvas.toDataURL('image/png');
+    const avatarPreview = document.getElementById('avatar-preview');
+    if (avatarPreview) avatarPreview.src = dataUrl;
+    // Stop the camera stream
+    mediaStream.getTracks().forEach(track => track.stop());
+    mediaStream = null;
+    videoStream.style.display = 'none';
+    btnCapturePhoto.style.display = 'none';
+    btnStartCamera.style.display = 'inline-block';
   });
 }
-
 // --- ADMIN DASHBOARD & SCREENS (100% Matches Android Material 3 UI & Working) ---
 
 let reportSelectedYear = new Date().getFullYear();

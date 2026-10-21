@@ -226,9 +226,9 @@
         <img id="avatar-preview" src="icons/logo.png" alt="Avatar"
           style="width: 90px; height: 90px; border-radius: 50%; object-fit: cover; border: 2px solid var(--primary); margin-bottom: 12px;">
         <div>
-          <input type="file" id="avatar-file-input" accept="image/*" style="display: none;">
-          <button type="button" class="btn-text" onclick="document.getElementById('avatar-file-input').click()">Change
-            Photo</button>
+            <button type="button" class="btn-text" id="btn-start-camera">Take Photo</button>
+            <video id="camera-stream" autoplay style="display:none;width:90px;height:90px;border-radius:50%;object-fit:cover;border:2px solid var(--primary);margin-bottom:12px;"></video>
+            <button type="button" class="btn-text" id="btn-capture-photo" style="display:none;">Capture</button>
         </div>
       </div>
 
